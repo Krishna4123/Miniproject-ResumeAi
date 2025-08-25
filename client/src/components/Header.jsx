@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Brain, Menu, X, Zap, Target, TrendingUp } from 'lucide-react';
+import { Brain, Menu, X, Zap, Target, TrendingUp, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const Header = () => {
@@ -13,9 +13,11 @@ const Header = () => {
     { name: 'Builder', href: '/builder', icon: Zap },
     { name: 'Enhancer', href: '/enhancer', icon: Target },
     { name: 'Roadmap', href: '/roadmap', icon: TrendingUp },
+    { name: 'Job Matcher', href: '/job-matcher', icon: Briefcase },
   ];
 
   const isActiveRoute = (href) => location.pathname === href;
+
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass-card border-b border-white/10">

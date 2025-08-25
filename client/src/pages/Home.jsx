@@ -11,7 +11,8 @@ import {
   ArrowRight,
   Users,
   Award,
-  BarChart3
+  BarChart3,
+  Briefcase
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -35,6 +36,12 @@ const Home = () => {
       title: 'Career Roadmap',
       description: 'Get personalized career paths and skill recommendations based on your goals and market trends.',
       color: 'accent'
+    },
+    {
+      icon: Briefcase,
+      title: 'Job Matcher',
+      description: 'Match your resume against millions of job descriptions to find the perfect fit.',
+      color: 'primary'
     }
   ];
 
