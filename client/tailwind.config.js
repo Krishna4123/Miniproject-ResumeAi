@@ -1,10 +1,11 @@
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
 	darkMode: ["class"],
 	content: [
-		"./pages/**/*.{js,jsx}",
-		"./components/**/*.{js,jsx}",
-		"./app/**/*.{js,jsx}",
+		"./index.html",
 		"./src/**/*.{js,jsx}",
+		"./src/pages/**/*.{js,jsx}",
+		"./src/components/**/*.{js,jsx}",
 	],
 	prefix: "",
 	theme: {
@@ -70,7 +71,7 @@ export default {
 			},
 			boxShadow: {
 				'glow-primary': 'var(--glow-primary)',
-				'glow-secondary': 'var(--glow-secondary)',  
+				'glow-secondary': 'var(--glow-secondary)',
 				'glow-accent': 'var(--glow-accent)',
 				'elegant': 'var(--shadow-elegant)',
 				'neural': 'var(--shadow-neural)'
@@ -112,4 +113,4 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
-}
+};
