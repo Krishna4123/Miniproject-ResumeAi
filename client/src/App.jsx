@@ -8,6 +8,7 @@ import Builder from "./pages/Builder";
 import Enhancer from "./pages/Enhancer";
 import Roadmap from "./pages/Roadmap";
 import JobMatcher from "./pages/JobMatcher";
+import DbTest from "./pages/DbTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/enhancer" element={<Enhancer />} />
           <Route path="/roadmap" element={<Roadmap />} />
           <Route path="/job-matcher" element={<JobMatcher />} />
+          <Route path="/test-db" element={<DbTest />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
