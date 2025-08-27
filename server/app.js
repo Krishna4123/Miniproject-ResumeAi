@@ -17,10 +17,29 @@ const app = express();
 connectDB();
 
 // --- Middleware ---
-// Enable Cross-Origin Resource Sharing (CORS) for all routes
-app.use(cors({ origin: "http://localhost:5173", credentials: true }));
+
+// Dynamic CORS config
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true); // allow requests with no origin (Postman, mobile apps)
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:8080",
+      ];
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
 // Parse incoming JSON requests (limit 10mb for resume files if text extraction is needed)
 app.use(express.json({ limit: "10mb" }));
+
 // HTTP request logging
 app.use(morgan("dev"));
 
