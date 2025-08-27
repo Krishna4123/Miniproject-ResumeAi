@@ -49,6 +49,6 @@ export const mockMatchJob = async (payload) => {
 
 // 2. Real backend call (use this once backend endpoint is active)
 export const matchJob = (formData) =>
-  axios.post("http://localhost:5000/api/jobmatcher", formData, {
+  api.post("/jobmatcher", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
