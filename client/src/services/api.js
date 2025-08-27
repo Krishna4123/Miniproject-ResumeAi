@@ -1,40 +1,54 @@
 // client/src/services/api.js
 
-import axios from 'axios';
+import axios from "axios";
 
-// Create an axios instance for API calls
+// ========================
+// Axios Instance
+// ========================
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api', // Your backend server URL
+  baseURL: "http://localhost:5000/api", // Your backend server URL
   headers: {
-    'Content-Type': 'application/json',
-    'x-auth-user': '123', // Mock user ID for authMiddleware
+    "Content-Type": "application/json",
+    "x-auth-user": "123", // Mock user ID for authMiddleware
   },
 });
 
+// ========================
 // Resume APIs
-export const createResume = (resumeData) => api.post('/resumes', resumeData);
+// ========================
+export const createResume = (resumeData) => api.post("/resumes", resumeData);
 export const getUserResumes = (userId) => api.get(`/resumes/${userId}`);
-export const analyzeResume = (resumeText) => api.post('/resumes/analyze', { text: resumeText });
+export const analyzeResume = (resumeText) =>
+  api.post("/resumes/analyze", { text: resumeText });
 
+// ========================
 // Enhancer API
-export const enhanceResume = (resumeText) => api.post('/enhancer', { text: resumeText });
+// ========================
+export const enhanceResume = (resumeText) =>
+  api.post("/enhancer", { text: resumeText });
 
+// ========================
 // Roadmap API
-export const generateRoadmap = (goal) => api.post('/roadmap', { goal });
+// ========================
+export const generateRoadmap = (goal) => api.post("/roadmap", { goal });
 
-/**
- * Dummy function to fix rendering issue.
- * In a real scenario, this would make an API call.
- * @param {*} payload 
- * @returns 
- */
-export const matchJob = async (payload) => {
+// ========================
+// Job Matcher
+// ========================
+
+// 1. Dummy function (useful when backend isn’t ready)
+export const mockMatchJob = async (payload) => {
   console.log("Dummy matchJob called with:", payload);
-  // Return a promise that resolves with mock data
   return Promise.resolve({
     data: {
       jobs: ["Mock Job 1", "Mock Job 2"],
       matchScore: 75,
-    }
+    },
   });
 };
+
+// 2. Real backend call (use this once backend endpoint is active)
+export const matchJob = (formData) =>
+  axios.post("http://localhost:5000/api/jobmatcher", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
