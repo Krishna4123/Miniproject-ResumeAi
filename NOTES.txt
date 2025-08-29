@@ -4,3 +4,161 @@ NOW YOU TAKEN JOBMATCHER OPTION. YOU CREATED THE PYTHON ENV,
 UPDATED THE SERVER,CLIENT,A ND ML_SERVICE
 THERE IS AN ERROR IN POST METHOD IN API.JS IN CLIENT. START FROM THAT✅
 
+
+API SERVICES FOR JOB LISTINGS(CHOICES):
+| API / Service               | Free or Trial | Coverage                 | Notes                                                 |
+| --------------------------- | ------------- | ------------------------ | ----------------------------------------------------- |
+| **Rise – Free Public Jobs** | Yes           | Limited (Rise-specific)  | CORS-enabled and free—to explore basic integration.   |
+| **Jooble / Careerjet**      | Freemium      | Wide (aggregated boards) | Requires registration; possible usage limits.         |
+| **TheirStack Job Postings** | Trial         | Very wide (16+ sources)  | Good for deep testing during trial period.            |
+| **Coresignal Jobs API**     | Trial         | Large, refreshed dataset | Great for scalable integrations; subscription needed. |
+| **Google CTS Job Search**   | Not directly  | Indexing ML search only  | You supply jobs; not suitable for fetching listings.  |
+
+Model training for job matcher:
+1. Problem restatement in your words
+
+Input: A resume (free text).
+
+Extracted features: Skills, job roles mentioned in the resume.
+
+Output: A predicted job role (or set of possible roles) from a predefined list of real-world job roles stored in a database.
+
+Essentially:
+👉 Resume text → Extract structured features → Match/ classify → Retrieve standardized job role(s).
+
+2. Core pipeline
+
+This problem isn’t just Random Forest out-of-the-box. It needs a pipeline of NLP + ML + DB matching.
+
+Step A: Data preparation
+
+Collect a dataset of resumes (or synthetic resume-like entries). Each entry should have:
+
+Text (skills, experiences, job titles).
+
+Label = standardized job role (from your database).
+
+Your database should contain a controlled list of job roles (e.g., “Data Scientist”, “Software Engineer”, “Project Manager”, etc.).
+
+Step B: Resume text preprocessing
+
+Text cleaning: Lowercase, remove stopwords, punctuation.
+
+Skill extraction: Use either
+
+A predefined skills dictionary (e.g., NLP skills list: Python, SQL, Tableau, etc.), or
+
+An NER model (Spacy, HuggingFace transformers trained on resumes).
+
+Job role phrases: Extract titles like “Software Engineer”, “ML Engineer”, etc. from past job experiences.
+
+So after parsing, you get structured features like:
+
+{
+  "skills": ["python", "sql", "machine learning"],
+  "mentioned_roles": ["data analyst", "intern"],
+  "text": "full resume text..."
+}
+
+Step C: Feature representation
+
+Convert extracted info into ML-friendly features:
+
+Bag-of-Words / TF-IDF vectors on text.
+
+Or use embeddings (e.g., sentence-BERT) for richer semantic meaning.
+
+Optionally add binary features for skills (1 if present, 0 otherwise).
+
+Step D: Model training (classification)
+
+Now you can train a Random Forest Classifier:
+
+Input: resume features (TF-IDF + skills indicators).
+
+Target: standardized job role.
+
+Random Forest is decent if your feature space is structured (skills, keywords).
+
+If you only have text, Logistic Regression or Gradient Boosting / Transformer models often outperform RF on text classification.
+
+Step E: Matching to database
+
+After classification:
+
+The predicted label is matched with your database of job roles.
+
+If you want fuzzy matching (resume role text may not exactly match DB role), you can use:
+
+Embedding similarity (cosine similarity between resume embedding & job role embedding).
+
+Fuzzy string matching (e.g., Levenshtein distance).
+
+3. Example workflow
+
+Candidate uploads resume PDF.
+
+Extract text → parse skills & roles.
+
+Vectorize → pass into trained classifier.
+
+Output predicted job role(s).
+
+Query database: find best-matching standardized job title(s).
+
+Return ranked list.
+
+4. Implementation sketch (Python)
+
+Here’s a simplified prototype with Random Forest:
+
+import pandas as pd
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
+
+# Example dataset: resumes + job role labels
+df = pd.read_csv("resume_dataset.csv")  # columns: ["resume_text", "job_role"]
+
+# Split
+X_train, X_test, y_train, y_test = train_test_split(
+    df["resume_text"], df["job_role"], test_size=0.2, stratify=df["job_role"], random_state=42
+)
+
+# Pipeline: TF-IDF + RandomForest
+clf = Pipeline([
+    ("tfidf", TfidfVectorizer(max_features=5000, ngram_range=(1,2))),
+    ("rf", RandomForestClassifier(n_estimators=300, class_weight="balanced", random_state=42))
+])
+
+clf.fit(X_train, y_train)
+
+# Evaluation
+pred = clf.predict(X_test)
+print(classification_report(y_test, pred))
+
+# Predict new resume
+new_resume = """Experienced in Python, SQL, and ML. Worked as a Data Analyst for 2 years."""
+print("Predicted role:", clf.predict([new_resume])[0])
+
+
+Then once you have the predicted role, you’d:
+
+Match it with database:
+
+SELECT * FROM job_roles WHERE role_name = <predicted_role>;
+
+
+(or use fuzzy/embedding search if not exact).
+
+5. Extra considerations
+
+Database integration: Use embeddings (e.g., sentence-BERT) to store job role embeddings. Query resumes against them for semantic match.
+
+Multi-label cases: One resume may map to multiple roles → use RandomForestClassifier in multi-label mode (or OneVsRestClassifier).
+
+Explainability: Use feature importances or SHAP to show which skills led to the prediction.
+
+Scalability: Random Forest is fine for ~100k samples, but for millions of resumes, gradient boosting (XGBoost/LightGBM) or Transformer embeddings are better

@@ -189,27 +189,36 @@ const JobMatcher = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {jobMatches && jobMatches.length > 0 ? (
-                    jobMatches.map((job, index) => (
-                      <div
-                        key={index}
-                        className="flex items-start space-x-3 p-3 rounded-lg bg-white/5"
-                      >
-                        <div>
-                          <h4 className="font-medium">{job.title}</h4>
-                          <p className="text-sm text-muted-foreground">
-                            {job.description}
-                          </p>
-                          {job.score && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Match Score: {job.score}%
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p>No job matches found.</p>
-                  )}
+  jobMatches.map((job, index) => (
+    <div
+      key={index}
+      className="p-4 rounded-lg bg-white/5 border border-white/10 shadow-md"
+    >
+      <h4 className="text-lg font-semibold">{job.job_role}</h4>
+      <p className="text-sm text-muted-foreground mb-2">
+        {job.company_name} • {job.place_of_work}
+      </p>
+      <p className="text-sm text-muted-foreground mb-2">
+        Experience Needed: {job.experience_needed}
+      </p>
+      <p className="text-sm mb-3">{job.description}</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Mode of Work: {job.mode_of_work}
+      </p>
+
+      <Button
+        variant="neural"
+        size="sm"
+        onClick={() => window.location.href = `/jobs/${job.job_id}`}
+      >
+        View Job
+      </Button>
+    </div>
+  ))
+) : (
+  <p>No job matches found.</p>
+)}
+
                 </CardContent>
               </Card>
             </div>

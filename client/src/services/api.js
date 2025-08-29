@@ -47,7 +47,7 @@ export const mockMatchJob = async (payload) => {
   });
 };
 
-// 2. Real backend call (use this once backend endpoint is active)
+// 2. Real backend call (backend returns: { success, extractedData, matches: [jobPosting...] })
 export const matchJob = (formData) =>
   api.post("/jobmatcher", formData, {
     headers: { "Content-Type": "multipart/form-data" },
