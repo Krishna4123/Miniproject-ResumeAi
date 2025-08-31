@@ -1,11 +1,18 @@
 import os
 import joblib
 import tempfile
+import warnings
 from flask import Flask, request, jsonify
 from werkzeug.utils import secure_filename
 import pdfplumber
 import docx2txt
-from pymongo import MongoClient
+import requests
+from sklearn.exceptions import InconsistentVersionWarning
+
+# ------------------------
+# Suppress sklearn warnings
+# ------------------------
+warnings.filterwarnings("ignore", category=InconsistentVersionWarning)
 
 # ------------------------
 # Initialize Flask app
@@ -13,24 +20,20 @@ from pymongo import MongoClient
 app = Flask(__name__)
 
 # ------------------------
-# Load trained model
+# Load trained model (Pipeline + LabelEncoder dict)
 # ------------------------
 MODEL_PATH = os.path.join("models", "jobmatcher_model.joblib")
-model = joblib.load(MODEL_PATH)
+loaded_obj = joblib.load(MODEL_PATH)
 
-# Handle both (vectorizer, classifier) tuple and single model
-if isinstance(model, tuple) and len(model) == 2:
-    vectorizer, classifier = model
+pipeline, label_encoder = None, None
+
+if isinstance(loaded_obj, dict):
+    pipeline = loaded_obj.get("pipeline")
+    label_encoder = loaded_obj.get("label_encoder")
+elif hasattr(loaded_obj, "predict"):  # full pipeline (fallback)
+    pipeline = loaded_obj
 else:
-    vectorizer, classifier = None, model
-
-# ------------------------
-# MongoDB Connection
-# ------------------------
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/jobmatcher")
-client = MongoClient(MONGO_URI)
-db = client.get_database()
-job_postings = db["jobpostings"]   # make sure collection name is correct
+    raise RuntimeError("❌ Unsupported model format. Expected dict or pipeline.")
 
 # ------------------------
 # Helper: extract text from resume
@@ -55,7 +58,7 @@ def extract_resume_text(filepath, mimetype):
     return text.strip()
 
 # ------------------------
-# Prediction + Matching
+# Prediction + Matching via Node.js API
 # ------------------------
 @app.route("/predict", methods=["POST"])
 def predict():
@@ -76,36 +79,32 @@ def predict():
         if not resume_text:
             return jsonify({"error": "Could not extract text from resume"}), 400
 
-        # ------------------------
         # Extract some sample metadata
-        # ------------------------
         extractedData = {
             "skills": [w for w in resume_text.split() if w.istitle()][:10],
             "raw_text_preview": resume_text[:300],
         }
 
         # ------------------------
-        # Prediction
+        # ML Prediction
         # ------------------------
-        if vectorizer:
-            features = vectorizer.transform([resume_text])
-            predicted_role = classifier.predict(features)[0]
-        else:
-            predicted_role = classifier.predict([resume_text])[0]
+        if pipeline is None:
+            return jsonify({"error": "Model pipeline not loaded"}), 500
 
-        # ------------------------
-        # MongoDB Job Matches
-        # ------------------------
-        matches = list(job_postings.find(
-            {"job_role": {"$regex": predicted_role, "$options": "i"}},
-            {"_id": 0}   # hide internal Mongo _id
-        ))
+        y_pred = pipeline.predict([resume_text])[0]
+        predicted_role = (
+            label_encoder.inverse_transform([y_pred])[0]
+            if label_encoder is not None
+            else str(y_pred)
+        )
+
+        # Normalize predicted role to lowercase for API compatibility
+        predicted_role = predicted_role.lower()
 
         return jsonify({
             "success": True,
             "extractedData": extractedData,
             "predictedRole": predicted_role,
-            "matches": matches
         })
 
     except Exception as e:

@@ -1,10 +1,12 @@
-// routes/jobMatcherRoutes.js
 const express = require("express");
 const multer = require("multer");
 const { matchJobs } = require("../controllers/jobMatcherController");
 
 const router = express.Router();
 
+// ------------------------
+// Multer setup for resume upload
+// ------------------------
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
@@ -22,7 +24,9 @@ const upload = multer({
   },
 });
 
+// ------------------------
 // POST /api/jobmatcher
+// ------------------------
 router.post("/", upload.single("resume"), matchJobs);
 
 module.exports = router;

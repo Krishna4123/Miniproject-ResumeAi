@@ -16,6 +16,8 @@ import {
   CheckCircle,
   Target,
   Zap,
+  ArrowLeft,
+  ArrowRight,
 } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -28,6 +30,9 @@ const JobMatcher = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
   const [jobMatches, setJobMatches] = useState([]);
+  const [predictedRole, setPredictedRole] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 100;
 
   // Handle file upload
   const handleFileUpload = (event) => {
@@ -52,14 +57,27 @@ const JobMatcher = () => {
 
       const { data } = await matchJob(formData);
 
-      // Expected: data.matches = [{title, score, description, source}]
-      setJobMatches(data.matches || []);
+      console.log("JobMatcher API response data:", data);
+
+      // Normalize predictedRole to lowercase for jobs API
+      if (data.predictedRole) {
+        data.predictedRole = data.predictedRole.toLowerCase();
+      }
+
+      const jobsData = data.matches || [];
+      console.log("Job matches from API:", jobsData);
+      console.log("Number of jobs found:", jobsData.length);
+      
+      setJobMatches(jobsData);
+      setPredictedRole(data.predictedRole || "unknown");
+      console.log("Job matches set in state:", jobsData);
+
       setAnalysisComplete(true);
+      setCurrentPage(1);
 
       toast({
         title: "Analysis Complete!",
-        description:
-          "Your resume has been analyzed and job matches are ready.",
+        description: "Your resume has been analyzed and job matches are ready.",
       });
     } catch (error) {
       toast({
@@ -71,6 +89,12 @@ const JobMatcher = () => {
       setIsAnalyzing(false);
     }
   };
+
+  // Pagination logic
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+  const currentJobs = jobMatches.slice(indexOfFirstJob, indexOfLastJob);
+  const totalPages = Math.ceil(jobMatches.length / jobsPerPage);
 
   return (
     <div className="min-h-screen">
@@ -180,6 +204,28 @@ const JobMatcher = () => {
           ) : (
             /* Job Matches Result */
             <div className="space-y-8">
+              {/* Analysis Summary */}
+              <Card className="glass-card border-white/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Brain className="h-6 w-6 text-primary" />
+                    <span>Analysis Results</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                      <h3 className="font-semibold text-primary mb-2">Predicted Role</h3>
+                      <p className="text-lg capitalize">{predictedRole}</p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-white/5 border border-white/10">
+                      <h3 className="font-semibold text-primary mb-2">Job Matches Found</h3>
+                      <p className="text-lg">{jobMatches.length} positions</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="glass-card border-white/10">
                 <CardHeader>
                   <CardTitle className="flex items-center space-x-2">
@@ -188,37 +234,61 @@ const JobMatcher = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {jobMatches && jobMatches.length > 0 ? (
-  jobMatches.map((job, index) => (
-    <div
-      key={index}
-      className="p-4 rounded-lg bg-white/5 border border-white/10 shadow-md"
-    >
-      <h4 className="text-lg font-semibold">{job.job_role}</h4>
-      <p className="text-sm text-muted-foreground mb-2">
-        {job.company_name} • {job.place_of_work}
-      </p>
-      <p className="text-sm text-muted-foreground mb-2">
-        Experience Needed: {job.experience_needed}
-      </p>
-      <p className="text-sm mb-3">{job.description}</p>
-      <p className="text-xs text-muted-foreground mb-4">
-        Mode of Work: {job.mode_of_work}
-      </p>
+                  {currentJobs && currentJobs.length > 0 ? (
+                    currentJobs.map((job, index) => (
+                      <div
+                        key={index}
+                        className="p-4 rounded-lg bg-white/5 border border-white/10 shadow-md"
+                      >
+                        <h4 className="text-lg font-semibold">{job.title}</h4>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {job.hiring_organization_name} • {job.city}, {job.country}
+                        </p>
+                        <p className="text-sm text-muted-foreground mb-2">
+                          Employment: {job.employment_type}
+                        </p>
+                        <p className="text-sm mb-3 line-clamp-4">{job.description}</p>
+                        <p className="text-xs text-muted-foreground mb-4">
+                          Source: {job.website}
+                        </p>
 
-      <Button
-        variant="neural"
-        size="sm"
-        onClick={() => window.location.href = `/jobs/${job.job_id}`}
-      >
-        View Job
-      </Button>
-    </div>
-  ))
-) : (
-  <p>No job matches found.</p>
-)}
+                        <Button
+                          variant="neural"
+                          size="sm"
+                          onClick={() => window.open(job.url, "_blank")}
+                        >
+                          View Job
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <p>No job matches found.</p>
+                  )}
 
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <div className="flex justify-between items-center pt-6">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === 1}
+                        onClick={() => setCurrentPage((p) => p - 1)}
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Previous
+                      </Button>
+                      <p className="text-sm">
+                        Page {currentPage} of {totalPages}
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentPage === totalPages}
+                        onClick={() => setCurrentPage((p) => p + 1)}
+                      >
+                        Next <ArrowRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </div>

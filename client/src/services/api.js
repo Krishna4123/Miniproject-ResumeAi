@@ -6,7 +6,7 @@ import axios from "axios";
 // Axios Instance
 // ========================
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // Your backend server URL
+  baseURL: "http://localhost:5002/api", // Your backend server URL
   headers: {
     "Content-Type": "application/json",
     "x-auth-user": "123", // Mock user ID for authMiddleware
@@ -48,7 +48,8 @@ export const mockMatchJob = async (payload) => {
 };
 
 // 2. Real backend call (backend returns: { success, extractedData, matches: [jobPosting...] })
-export const matchJob = (formData) =>
-  api.post("/jobmatcher", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+export const matchJob = (formData) => api.post("/jobmatcher", formData, {
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+});
