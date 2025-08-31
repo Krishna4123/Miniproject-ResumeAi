@@ -73,7 +73,6 @@ const matchJobs = async (req, res) => {
       }
     );
 
-    console.log("APIJobs response:", apiJobsRes.data);
     const matches = apiJobsRes.data.hits || []; // APIJobs returns jobs in 'hits' property
 
     // ------------------------
