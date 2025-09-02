@@ -10,6 +10,16 @@ const connectDB = require("./config/db");
 // Load environment variables from .env file
 dotenv.config();
 
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URI', 'APIJOBS_KEY'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please check your .env file');
+  process.exit(1);
+}
+
 // Initialize the Express application
 const app = express();
 
@@ -26,6 +36,7 @@ app.use(
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:8080",
+        "http://localhost:3000", // Add common React dev port
       ];
       if (allowedOrigins.includes(origin)) {
         callback(null, true);
@@ -51,13 +62,21 @@ app.use("/api/jobmatcher", require("./routes/jobMatcherRoutes")); // ✅ JobMatc
 
 // Health check route
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, message: "Server is running" });
+  res.json({ 
+    ok: true, 
+    message: "Server is running",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
 });
 
 // Global error handler
 app.use((err, _req, res, _next) => {
-  console.error(err);
-  res.status(err.status || 500).json({ error: err.message || "Server error" });
+  console.error('Global error handler:', err);
+  res.status(err.status || 500).json({ 
+    error: err.message || "Server error",
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Define the port for the server to listen on
@@ -66,4 +85,6 @@ const PORT = process.env.PORT || 5002;
 // Start the server
 app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🌐 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

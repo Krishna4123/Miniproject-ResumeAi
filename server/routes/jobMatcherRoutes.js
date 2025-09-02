@@ -1,6 +1,7 @@
 const express = require("express");
 const multer = require("multer");
 const { matchJobs } = require("../controllers/jobMatcherController");
+const { validateFileUpload } = require("../middleware/validationMiddleware");
 
 const router = express.Router();
 
@@ -27,6 +28,6 @@ const upload = multer({
 // ------------------------
 // POST /api/jobmatcher
 // ------------------------
-router.post("/", upload.single("resume"), matchJobs);
+router.post("/", upload.single("resume"), validateFileUpload, matchJobs);
 
 module.exports = router;

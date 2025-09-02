@@ -22,10 +22,11 @@ app = Flask(__name__)
 # ------------------------
 # Load trained model (Pipeline + LabelEncoder dict)
 # ------------------------
-MODEL_PATH = os.path.join("models", "jobmatcher_model.joblib")
+MODEL_PATH = os.path.join("models", "multilabel_job_predictor.joblib")
 loaded_obj = joblib.load(MODEL_PATH)
+pipeline = loaded_obj.get("pipeline")
+mlb = loaded_obj.get("multilabel_binarizer")
 
-pipeline, label_encoder = None, None
 
 if isinstance(loaded_obj, dict):
     pipeline = loaded_obj.get("pipeline")
@@ -58,8 +59,10 @@ def extract_resume_text(filepath, mimetype):
     return text.strip()
 
 # ------------------------
-# Prediction + Matching via Node.js API
+# Prediction 
 # ------------------------
+
+
 @app.route("/predict", methods=["POST"])
 def predict():
     try:
@@ -69,47 +72,41 @@ def predict():
         file = request.files["resume"]
         filename = secure_filename(file.filename)
 
-        # Save temporarily
         temp_dir = tempfile.mkdtemp()
         temp_path = os.path.join(temp_dir, filename)
         file.save(temp_path)
 
-        # Extract text
         resume_text = extract_resume_text(temp_path, file.mimetype)
         if not resume_text:
             return jsonify({"error": "Could not extract text from resume"}), 400
 
-        # Extract some sample metadata
         extractedData = {
             "skills": [w for w in resume_text.split() if w.istitle()][:10],
             "raw_text_preview": resume_text[:300],
         }
 
-        # ------------------------
-        # ML Prediction
-        # ------------------------
-        if pipeline is None:
-            return jsonify({"error": "Model pipeline not loaded"}), 500
+        if pipeline is None or mlb is None:
+            return jsonify({"error": "Model or multilabel binarizer not loaded"}), 500
 
-        y_pred = pipeline.predict([resume_text])[0]
-        predicted_role = (
-            label_encoder.inverse_transform([y_pred])[0]
-            if label_encoder is not None
-            else str(y_pred)
-        )
+        y_pred = pipeline.predict([resume_text])  # shape (1, n_classes)
+        predicted_roles = mlb.inverse_transform(y_pred)  # returns list of tuples
 
-        # Normalize predicted role to lowercase for API compatibility
-        predicted_role = predicted_role.lower()
+        # predicted_roles is a list with one tuple of labels
+        predicted_roles_list = list(predicted_roles[0]) if predicted_roles else []
+
+        # Normalize to lowercase
+        predicted_roles_list = [role.lower() for role in predicted_roles_list]
 
         return jsonify({
             "success": True,
             "extractedData": extractedData,
-            "predictedRole": predicted_role,
+            "predictedRoles": predicted_roles_list,
         })
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
         return jsonify({"error": str(e)}), 500
+
 
 # ------------------------
 # Health check
