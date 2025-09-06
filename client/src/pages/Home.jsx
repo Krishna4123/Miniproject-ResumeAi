@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
-  Brain, 
+  FileText, 
   Zap, 
   Target, 
   TrendingUp, 
@@ -20,7 +20,7 @@ import Footer from '@/components/Footer';
 const Home = () => {
   const features = [
     {
-      icon: Brain,
+      icon: FileText,
       title: 'AI Resume Builder',
       description: 'Create stunning, ATS-optimized resumes with our intelligent builder that understands your industry.',
       color: 'primary'
@@ -55,7 +55,7 @@ const Home = () => {
     {
       name: 'Sarah Chen',
       role: 'Software Engineer at Google',
-      content: 'Smart Resume AI helped me land my dream job at Google. The AI suggestions were spot-on!',
+      content: 'ResuZo helped me land my dream job at Google. The professional suggestions were spot-on!',
       rating: 5
     },
     {
@@ -81,39 +81,39 @@ const Home = () => {
         <div className="absolute inset-0 cyber-grid opacity-10"></div>
         <div className="relative container mx-auto px-4 text-center">
           <div className="max-w-4xl mx-auto slide-in">
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Transform Your Career with{' '}
-              <span className="gradient-text">AI-Powered</span> Resumes
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight fade-in-up hero-title">
+              "Your Dream Job Awaits -{' '}
+              <span className="gradient-text">Let Your Resume</span> Tell Your Story"
             </h1>
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed fade-in-up hero-subtitle" style={{ animationDelay: '0.2s' }}>
               Build, enhance, and optimize your resume with cutting-edge AI technology. 
               Get more interviews, land better jobs, and accelerate your career growth.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <Button variant="neural" size="lg" className="shadow-glow-primary" asChild>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 fade-in-up cta-buttons" style={{ animationDelay: '0.4s' }}>
+              <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover bounce-in button-lg" asChild>
                 <Link to="/builder">
-                  Start Building Now
+                  START BUILDING NOW
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
-              <Button variant="glass" size="lg" asChild>
+              <Button variant="glass" size="lg" className="professional-hover scale-in button-lg" asChild>
                 <Link to="/enhancer">
-                  Enhance Existing Resume
+                  ENHANCE EXISTING RESUME
                 </Link>
               </Button>
             </div>
             
             {/* Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto">
-              {stats.map((stat) => {
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-2xl mx-auto fade-in-up stats-grid" style={{ animationDelay: '0.6s' }}>
+              {stats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <div key={stat.label} className="text-center floating">
-                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-xl shadow-glow-primary mb-3">
+                  <div key={stat.label} className="text-center floating professional-hover" style={{ animationDelay: `${0.8 + index * 0.2}s` }}>
+                    <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-xl shadow-glow-primary mb-3 glow-pulse">
                       <Icon className="h-6 w-6 text-white" />
                     </div>
                     <div className="text-3xl font-bold gradient-text mb-1">{stat.value}</div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    <div className="text-sm text-muted-foreground uppercase tracking-wide">{stat.label}</div>
                   </div>
                 );
               })}
@@ -127,24 +127,24 @@ const Home = () => {
         <div className="absolute inset-0 cyber-grid opacity-5"></div>
         <div className="relative container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
-              Powerful <span className="gradient-text">AI Features</span>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4 fade-in-up">
+              POWERFUL <span className="gradient-text">PROFESSIONAL FEATURES</span>
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto fade-in-up" style={{ animationDelay: '0.2s' }}>
               Everything you need to create, enhance, and optimize your professional presence
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 feature-grid">
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={feature.title} className="glass-card border-white/10 hover:border-white/20 transition-all duration-300 group slide-in" style={{ animationDelay: `${index * 0.2}s` }}>
+                <Card key={feature.title} className="glass-card border-white/10 hover:border-white/20 transition-all duration-300 group professional-hover scale-in card" style={{ animationDelay: `${0.4 + index * 0.2}s` }}>
                   <CardHeader>
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl shadow-glow-primary group-hover:shadow-glow-secondary transition-all duration-300 mb-4">
+                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl shadow-glow-primary group-hover:shadow-glow-secondary transition-all duration-300 mb-4 glow-pulse">
                       <Icon className="h-8 w-8 text-white" />
                     </div>
-                    <CardTitle className="text-xl gradient-text">{feature.title}</CardTitle>
+                    <CardTitle className="text-xl font-bold gradient-text uppercase tracking-wide">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <CardDescription className="text-muted-foreground leading-relaxed">
@@ -170,9 +170,9 @@ const Home = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 testimonial-grid">
             {testimonials.map((testimonial, index) => (
-              <Card key={testimonial.name} className="glass-card border-white/10 slide-in" style={{ animationDelay: `${index * 0.2}s` }}>
+              <Card key={testimonial.name} className="glass-card border-white/10 slide-in card" style={{ animationDelay: `${index * 0.2}s` }}>
                 <CardHeader>
                   <div className="flex items-center space-x-1 mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -202,7 +202,7 @@ const Home = () => {
               Ready to <span className="gradient-text">Transform</span> Your Career?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
-              Join thousands of professionals who've already accelerated their careers with Smart Resume AI
+              Join thousands of professionals who've already accelerated their careers with ResuZo
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="neural" size="lg" className="shadow-glow-primary" asChild>
