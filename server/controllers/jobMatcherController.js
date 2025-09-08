@@ -1,11 +1,12 @@
 const axios = require("axios");
-const pdfParse = require("pdf-parse");
-const mammoth = require("mammoth");
 const FormData = require("form-data");
+const TextExtractor = require("../utils/textExtractor");
+const ExtractionFallbackSystem = require("../utils/extractionFallback");
+const { validateTextQuality } = require("../middleware/enhancedValidation");
 
-function toArrayBuffer(buffer) {
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
-}
+// Initialize text extractor and fallback system
+const textExtractor = new TextExtractor();
+const fallbackSystem = new ExtractionFallbackSystem();
 
 const matchJobs = async (req, res) => {
   try {
@@ -24,86 +25,90 @@ const matchJobs = async (req, res) => {
       size: req.file.size
     });
 
-    let resumeText = "";
+    let extractionResult;
 
     // ------------------------
-    // Extract resume text with better error handling
+    // Extract resume text with enhanced precision
     // ------------------------
     try {
-      if (req.file.mimetype === "application/pdf") {
-        const pdfData = await pdfParse(req.file.buffer);
-        resumeText = pdfData.text;
-      } else if (
-        req.file.mimetype === "application/msword" ||
-        req.file.mimetype ===
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) {
-        const result = await mammoth.extractRawText({ arrayBuffer: toArrayBuffer(req.file.buffer) });
-        resumeText = result.value;
-      } else {
-        console.error("Unsupported file format:", req.file.mimetype);
+      extractionResult = await textExtractor.extractText(
+        req.file.buffer, 
+        req.file.mimetype, 
+        req.file.originalname
+      );
+      
+      if (!extractionResult.text || !extractionResult.text.trim()) {
         return res.status(400).json({ 
-          error: "Unsupported file format",
-          details: "Please upload a PDF, DOC, or DOCX file",
-          received: req.file.mimetype
+          error: "Could not extract text from the resume",
+          details: "The file appears to be empty, corrupted, or contains only images",
+          metadata: extractionResult.metadata
         });
       }
+
+      // Validate text quality
+      const qualityValidation = validateTextQuality(extractionResult);
+      
+      if (!qualityValidation.valid) {
+        console.warn("Text quality issues:", qualityValidation.issues);
+        return res.status(400).json({
+          error: "Poor text extraction quality",
+          details: "The extracted text quality is too low for reliable processing",
+          issues: qualityValidation.issues,
+          warnings: qualityValidation.warnings,
+          metadata: extractionResult.metadata
+        });
+      }
+
+      // Log warnings if any
+      if (qualityValidation.warnings.length > 0) {
+        console.warn("Text quality warnings:", qualityValidation.warnings);
+      }
+
+      console.log("Enhanced text extraction successful:", {
+        method: extractionResult.metadata.extractionMethod,
+        confidence: extractionResult.metadata.confidence,
+        textLength: extractionResult.metadata.textLength,
+        quality: qualityValidation.valid ? 'Good' : 'Poor',
+        warnings: qualityValidation.warnings.length
+      });
+
     } catch (extractionError) {
-      console.error("Text extraction error:", extractionError);
+      console.error("Enhanced text extraction error:", extractionError);
       return res.status(400).json({ 
         error: "Failed to extract text from file",
-        details: "The file may be corrupted or password-protected"
+        details: extractionError.message || "The file may be corrupted, password-protected, or in an unsupported format"
       });
     }
 
-    if (!resumeText.trim()) {
-      console.error("No text extracted from resume");
-      return res.status(400).json({ 
-        error: "Could not extract text from the resume",
-        details: "The file appears to be empty or contains only images"
-      });
-    }
-
-    console.log("Resume text extracted successfully, length:", resumeText.length);
-
     // ------------------------
-    // Send to Flask ML service with better error handling
+    // Send to Flask ML service with enhanced fallback handling
     // ------------------------
-    let flaskRes;
+    let mlServiceResult;
     try {
-      const formData = new FormData();
-      formData.append("resume", req.file.buffer, {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
+      console.log("Processing with ML service (with fallback support)");
+      mlServiceResult = await fallbackSystem.processFile(req.file, extractionResult);
+      console.log("ML service processing completed:", {
+        serviceUsed: mlServiceResult.serviceUsed,
+        hasFallback: !!mlServiceResult.mlServiceError,
+        rolesCount: mlServiceResult.predictedRoles?.length || 0
       });
-
-      const flaskUrl = process.env.FLASK_ML_SERVICE_URL || "http://localhost:5001/predict";
-      console.log("Sending to ML service:", flaskUrl);
-
-      flaskRes = await axios.post(flaskUrl, formData, { 
-        headers: formData.getHeaders(),
-        timeout: 30000 // 30 second timeout
-      });
-
-      console.log("ML service response received");
     } catch (mlError) {
-      console.error("ML Service error:", mlError.message);
-      if (mlError.code === 'ECONNREFUSED') {
-        return res.status(503).json({ 
-          error: "ML service is unavailable",
-          details: "Please ensure the ML service is running on port 5001"
-        });
-      }
-      return res.status(500).json({ 
-        error: "Failed to analyze resume",
-        details: "ML service error: " + mlError.message
+      console.error("All ML processing methods failed:", mlError.message);
+      return res.status(503).json({ 
+        error: "AI analysis service unavailable",
+        details: "Unable to process resume with AI analysis. Please try again later.",
+        technicalDetails: process.env.NODE_ENV === 'development' ? mlError.message : undefined
       });
     }
 
-    const { predictedRoles, extractedData } = flaskRes.data;
+    const { extractedData, predictedRoles } = mlServiceResult;
 
     if (!predictedRoles || predictedRoles.length === 0) {
-      return res.status(400).json({ error: "No predicted roles returned from ML service" });
+      console.warn("No predicted roles returned from ML service");
+      return res.status(400).json({ 
+        error: "Unable to predict job roles",
+        details: "The AI analysis could not determine suitable job roles from the resume"
+      });
     }
 
     // ------------------------
@@ -161,26 +166,60 @@ const matchJobs = async (req, res) => {
     console.log("Total job matches found:", totalMatches);
 
     // ------------------------
-    // Return combined result
+    // Return combined result with enhanced metadata and fallback info
     // ------------------------
-    res.json({
+    const response = {
       success: true,
       extractedData,
       predictedRoles,
       matchesByRole,
       stats: {
-        resumeTextLength: resumeText.length,
+        resumeTextLength: extractionResult.text.length,
         totalJobMatches: totalMatches,
         rolesSearched: predictedRoles.length
-      }
-    });
+      },
+      extractionMetadata: extractionResult.metadata
+    };
+
+    // Add ML service information if available
+    if (mlServiceResult.mlServiceError) {
+      response.mlServiceInfo = {
+        fallbackUsed: true,
+        originalError: mlServiceResult.mlServiceError,
+        serviceUsed: mlServiceResult.serviceUsed
+      };
+    } else {
+      response.mlServiceInfo = {
+        fallbackUsed: false,
+        serviceUsed: mlServiceResult.serviceUsed
+      };
+    }
+
+    res.json(response);
   } catch (error) {
     console.error("Unexpected error in jobMatcher:", error);
     res.status(500).json({ 
       error: "Internal server error",
       details: process.env.NODE_ENV === 'development' ? error.message : "Please try again later"
     });
+  } finally {
+    // Cleanup any resources if needed
+    // Note: TextExtractor cleanup is handled globally, not per request
   }
 };
 
-module.exports = { matchJobs };
+// Cleanup function for graceful shutdown
+const cleanup = async () => {
+  try {
+    await textExtractor.cleanup();
+    console.log("Text extractor resources cleaned up");
+  } catch (error) {
+    console.error("Error during cleanup:", error);
+  }
+};
+
+// Handle graceful shutdown
+process.on('SIGINT', cleanup);
+process.on('SIGTERM', cleanup);
+
+module.exports = { matchJobs, cleanup };
