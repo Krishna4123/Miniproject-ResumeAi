@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Brain, Github, Twitter, Linkedin, Mail, Heart } from 'lucide-react';
+import { Github, Twitter, Linkedin, Mail, Heart } from 'lucide-react';
+import Logo from './Logo';
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -8,7 +9,7 @@ const Footer = () => {
     { name: 'GitHub', href: '#', icon: Github },
     { name: 'Twitter', href: '#', icon: Twitter },
     { name: 'LinkedIn', href: '#', icon: Linkedin },
-    { name: 'Email', href: 'mailto:contact@smartresumeai.com', icon: Mail },
+    { name: 'Email', href: 'mailto:contact@resuzo.com', icon: Mail },
   ];
 
   const footerLinks = {
@@ -33,24 +34,24 @@ const Footer = () => {
   };
 
   return (
-    <footer className="relative border-t border-white/10 bg-gradient-card">
+    <footer className="relative border-t border-white/10 bg-gradient-card dark">
       {/* Background Pattern */}
       <div className="absolute inset-0 cyber-grid opacity-20"></div>
       
       <div className="relative container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 footer-grid">
           {/* Brand Section */}
           <div className="lg:col-span-2">
             <Link to="/" className="flex items-center space-x-3 mb-4 group">
               <div className="p-2 bg-gradient-primary rounded-xl shadow-glow-primary group-hover:shadow-glow-secondary transition-all duration-300">
-                <Brain className="h-6 w-6 text-white" />
+                <Logo className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-text">
-                Smart Resume AI
+              <span className="text-xl font-bold gradient-text logo-text">
+                ResuZo
               </span>
             </Link>
             <p className="text-muted-foreground mb-6 max-w-md leading-relaxed">
-              Transform your career with AI-powered resume building, enhancement, and 
+              Transform your career with professional resume building, enhancement, and 
               personalized career roadmaps. Join thousands of professionals who've 
               landed their dream jobs.
             </p>
@@ -74,7 +75,7 @@ const Footer = () => {
           {/* Links Sections */}
           {Object.entries(footerLinks).map(([category, links]) => (
             <div key={category}>
-              <h3 className="font-semibold text-foreground mb-4">{category}</h3>
+              <h3 className="font-bold text-foreground mb-4 uppercase tracking-wide">{category}</h3>
               <ul className="space-y-3">
                 {links.map((link) => (
                   <li key={link.name}>
@@ -93,27 +94,27 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="border-t border-white/10 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
+          <div className="flex flex-col md:flex-row items-center justify-between footer-bottom">
             <p className="text-muted-foreground text-sm mb-4 md:mb-0">
-              © {currentYear} Smart Resume AI. All rights reserved.
+              © {currentYear} ResuZo. All rights reserved.
             </p>
             <div className="flex items-center space-x-6 text-sm">
               <Link 
                 to="#" 
                 className="text-muted-foreground hover:text-primary transition-colors duration-300"
               >
-                Privacy Policy
+                PRIVACY POLICY
               </Link>
               <Link 
                 to="#" 
                 className="text-muted-foreground hover:text-primary transition-colors duration-300"
               >
-                Terms of Service
+                TERMS OF SERVICE
               </Link>
               <div className="flex items-center space-x-1 text-muted-foreground">
                 <span>Made with</span>
                 <Heart className="h-4 w-4 text-red-500 animate-pulse" />
-                <span>by the Smart Resume AI team</span>
+                <span>by the ResuZo team</span>
               </div>
             </div>
           </div>

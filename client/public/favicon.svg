@@ -1,0 +1,27 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="50" cy="50" r="45" fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
+  
+  <!-- Document/Resume Icon -->
+  <rect x="25" y="20" width="30" height="40" rx="3" fill="white" stroke="#1E40AF" stroke-width="1.5"/>
+  
+  <!-- Document Lines -->
+  <line x1="30" y1="30" x2="50" y2="30" stroke="#1E40AF" stroke-width="1.5"/>
+  <line x1="30" y1="35" x2="45" y2="35" stroke="#1E40AF" stroke-width="1.5"/>
+  <line x1="30" y1="40" x2="50" y2="40" stroke="#1E40AF" stroke-width="1.5"/>
+  <line x1="30" y1="45" x2="40" y2="45" stroke="#1E40AF" stroke-width="1.5"/>
+  
+  <!-- AI Brain/Neural Network -->
+  <circle cx="65" cy="35" r="8" fill="white" stroke="#1E40AF" stroke-width="1.5"/>
+  
+  <!-- Neural Network Connections -->
+  <path d="M55 35 Q60 30 65 35 Q70 40 75 35" fill="none" stroke="#1E40AF" stroke-width="1.5"/>
+  
+  <!-- AI Circuit Pattern -->
+  <rect x="60" y="45" width="8" height="2" rx="1" fill="#1E40AF"/>
+  <rect x="62" y="50" width="4" height="2" rx="1" fill="#1E40AF"/>
+  <rect x="60" y="55" width="8" height="2" rx="1" fill="#1E40AF"/>
+  
+  <!-- Success Checkmark -->
+  <path d="M75 20 L80 25 L85 15" fill="none" stroke="#1E40AF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

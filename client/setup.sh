@@ -1,4 +1,4 @@
 #!/bin/bash
 
-# Install dependencies from requirements.txt
-npm install $(cat requirements.txt)
+# Install dependencies from package.json
+npm install
