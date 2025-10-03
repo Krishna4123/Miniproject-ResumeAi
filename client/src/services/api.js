@@ -30,7 +30,11 @@ export const enhanceResume = (resumeText) =>
 // ========================
 // Roadmap API
 // ========================
-export const generateRoadmap = (goal) => api.post("/roadmap", { goal });
+export const generateRoadmap = (roadmapData) => 
+  api.post("/roadmap", roadmapData);
+
+export const saveRoadmap = (roadmapData) =>
+  api.post("/roadmap/save", roadmapData);
 
 // ========================
 // Job Matcher

@@ -1,29 +1,32 @@
-// middleware/authMiddleware.js
-
 /**
- * Example authentication middleware.
- * Checks for a 'x-auth-user' header and attaches a mock user object to the request.
- * In a real application, this would involve token validation (e.g., JWT).
+ * Mock Authentication Middleware
+ * In a production app, this would verify JWT tokens
  */
+
 const authMiddleware = (req, res, next) => {
-  // Get user identifier from a custom header
-  const userId = req.header('x-auth-user');
-
-  if (!userId) {
-    // If no user ID is provided, return a 401 Unauthorized error
-    return res.status(401).json({ message: 'Unauthorized: No user ID provided.' });
-  }
-
   try {
-    // In a real app, you would validate the token or session here.
-    // For this example, we'll just attach a mock user object.
+    // For development, always allow requests with any content
+    // Check for various auth headers that might be present
+    const userId = req.headers['x-auth-user'] || 
+                  req.headers['authorization'] || 
+                  req.headers['auth-token'] || 
+                  'default-user';
+    
+    // Mock user object - in production, this would come from JWT verification
     req.user = {
-      id: userId,
-      name: 'Test User', // Mock user name
+      id: userId === 'default-user' ? 'user123' : userId,
+      email: 'user@example.com'
     };
-    next(); // Proceed to the next middleware or route handler
+    
+    console.log(`[AuthMiddleware] Authenticated user: ${req.user.id}`);
+    next();
+    
   } catch (error) {
-    res.status(401).json({ message: 'Unauthorized: Invalid token.' });
+    console.error('[AuthMiddleware] Authentication error:', error);
+    res.status(401).json({ 
+      message: 'Authentication failed.',
+      code: 'AUTH_FAILED'
+    });
   }
 };
 

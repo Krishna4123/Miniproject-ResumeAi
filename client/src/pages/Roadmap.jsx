@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { 
   TrendingUp, 
   Target, 
@@ -14,89 +16,67 @@ import {
   ArrowRight,
   MapPin,
   Zap,
-  Brain
+  Brain,
+  X,
+  Plus,
+  Save,
+  PlayCircle
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { generateRoadmap, saveRoadmap } from '@/services/api';
 
 const Roadmap = () => {
   const { toast } = useToast();
   const [currentRole, setCurrentRole] = useState('');
   const [targetRole, setTargetRole] = useState('');
   const [experience, setExperience] = useState('');
+  const [currentSkills, setCurrentSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState('');
+  const [skillsDetail, setSkillsDetail] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [roadmapGenerated, setRoadmapGenerated] = useState(false);
-
-  const roadmapData = {
-    timeline: '6-12 months',
-    difficulty: 'Intermediate',
-    steps: [
-      {
-        phase: 'Foundation (Months 1-2)',
-        title: 'Strengthen Core Skills',
-        description: 'Build a solid foundation in essential technologies and methodologies.',
-        skills: ['Advanced JavaScript', 'System Design Basics', 'Database Optimization', 'API Design'],
-        resources: [
-          { type: 'Course', name: 'Advanced JavaScript Patterns', duration: '4 weeks' },
-          { type: 'Book', name: 'Designing Data-Intensive Applications', duration: '6 weeks' },
-          { type: 'Project', name: 'Build a REST API with Authentication', duration: '2 weeks' }
-        ],
-        status: 'upcoming'
-      },
-      {
-        phase: 'Growth (Months 3-4)',
-        title: 'Leadership & Architecture',
-        description: 'Develop leadership skills and deep architectural understanding.',
-        skills: ['Team Leadership', 'System Architecture', 'Code Review', 'Mentoring'],
-        resources: [
-          { type: 'Course', name: 'Tech Leadership Fundamentals', duration: '3 weeks' },
-          { type: 'Practice', name: 'Lead a small team project', duration: '4 weeks' },
-          { type: 'Certification', name: 'AWS Solutions Architect', duration: '6 weeks' }
-        ],
-        status: 'current'
-      },
-      {
-        phase: 'Specialization (Months 5-6)',
-        title: 'Domain Expertise',
-        description: 'Deepen expertise in your chosen specialization area.',
-        skills: ['Microservices', 'DevOps', 'Performance Optimization', 'Security'],
-        resources: [
-          { type: 'Project', name: 'Microservices Architecture Implementation', duration: '6 weeks' },
-          { type: 'Course', name: 'Advanced DevOps Practices', duration: '4 weeks' },
-          { type: 'Mentorship', name: '1:1 with Senior Architect', duration: '8 weeks' }
-        ],
-        status: 'upcoming'
-      }
-    ],
-    marketInsights: {
-      demand: 'High',
-      averageSalary: '$145,000 - $180,000',
-      topCompanies: ['Google', 'Amazon', 'Microsoft', 'Netflix', 'Uber'],
-      keySkills: ['System Design', 'Leadership', 'Cloud Architecture', 'DevOps']
-    }
-  };
+  const [error, setError] = useState('');
+  const [roadmapDataState, setRoadmapDataState] = useState(null);
 
   const handleGenerateRoadmap = async () => {
-    if (!currentRole || !targetRole || !experience) {
+    if (!currentRole || !targetRole || !experience || currentSkills.length === 0) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields to generate your roadmap.",
+        description: "Please fill in all fields including at least one current skill.",
         variant: "destructive",
       });
       return;
     }
 
     setIsGenerating(true);
-    // Simulate AI generation
-    setTimeout(() => {
+    
+    try {
+      const roadmapPayload = {
+        currentRole,
+        targetRole,
+        experience,
+        currentSkills,
+        skillsDetail
+      };
+      
+      const response = await generateRoadmap(roadmapPayload);
+      setRoadmapDataState(response.data.roadmap);
       setIsGenerating(false);
       setRoadmapGenerated(true);
       toast({
         title: "Roadmap Generated!",
         description: "Your personalized career roadmap is ready.",
       });
-    }, 3000);
+    } catch (error) {
+      setIsGenerating(false);
+      toast({
+        title: "Generation Failed",
+        description: error.response?.data?.message || "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
 const getStatusIcon = (status) => {
@@ -120,6 +100,49 @@ const getResourceIcon = (type) => {
         return <Award className="h-4 w-4 text-yellow-400" />;
       default:
         return <BookOpen className="h-4 w-4 text-blue-400" />;
+    }
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !currentSkills.includes(skillInput.trim())) {
+      setCurrentSkills([...currentSkills, skillInput.trim()]);
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setCurrentSkills(currentSkills.filter(skill => skill !== skillToRemove));
+  };
+
+  const handleSkillKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addSkill();
+    }
+  };
+
+  const handleSaveRoadmap = async () => {
+    try {
+      const roadmapPayload = {
+        currentRole,
+        targetRole,
+        experience,
+        currentSkills,
+        skillsDetail,
+        roadmap: roadmapDataState
+      };
+      
+      await saveRoadmap(roadmapPayload);
+      toast({
+        title: "Roadmap Saved!",
+        description: "Your roadmap has been saved. You can continue learning anytime.",
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: error.response?.data?.message || "Failed to save roadmap. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -188,6 +211,62 @@ const getResourceIcon = (type) => {
                     </Select>
                   </div>
 
+                  <div className="space-y-2">
+                    <Label htmlFor="current-skills">Current Skills</Label>
+                    <div className="space-y-3">
+                      <div className="flex gap-2">
+                        <Input
+                          id="skill-input"
+                          placeholder="e.g., JavaScript, React, Node.js"
+                          value={skillInput}
+                          onChange={(e) => setSkillInput(e.target.value)}
+                          onKeyPress={handleSkillKeyPress}
+                          className="flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addSkill}
+                          disabled={!skillInput.trim()}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {currentSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {currentSkills.map((skill, index) => (
+                            <Badge
+                              key={index}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
+                              {skill}
+                              <button
+                                onClick={() => removeSkill(skill)}
+                                className="ml-1 hover:bg-red-500/20 rounded-full p-0.5"
+                                aria-label={`Remove ${skill}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="skills-detail">Additional Skills Details (Optional)</Label>
+                    <Textarea
+                      id="skills-detail"
+                      placeholder="Describe your proficiency levels or specific expertise in more detail..."
+                      value={skillsDetail}
+                      onChange={(e) => setSkillsDetail(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
                   <Button
                     variant="neural"
                     size="lg"
@@ -228,21 +307,21 @@ const getResourceIcon = (type) => {
                       <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-xl shadow-glow-primary mb-3">
                         <Clock className="h-6 w-6 text-white" />
                       </div>
-                      <div className="text-2xl font-bold gradient-text">{roadmapData.timeline}</div>
+                      <div className="text-2xl font-bold gradient-text">{roadmapDataState?.timeline}</div>
                       <div className="text-sm text-muted-foreground">Estimated Timeline</div>
                     </div>
                     <div className="text-center">
                       <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-secondary rounded-xl shadow-glow-secondary mb-3">
                         <Target className="h-6 w-6 text-white" />
                       </div>
-                      <div className="text-2xl font-bold gradient-text">{roadmapData.difficulty}</div>
+                      <div className="text-2xl font-bold gradient-text">{roadmapDataState?.difficulty}</div>
                       <div className="text-sm text-muted-foreground">Difficulty Level</div>
                     </div>
                     <div className="text-center">
                       <div className="inline-flex items-center justify-center w-12 h-12 bg-gradient-primary rounded-xl shadow-glow-primary mb-3">
                         <Award className="h-6 w-6 text-white" />
                       </div>
-                      <div className="text-2xl font-bold gradient-text">{roadmapData.steps.length}</div>
+                      <div className="text-2xl font-bold gradient-text">{roadmapDataState?.steps?.length}</div>
                       <div className="text-sm text-muted-foreground">Learning Phases</div>
                     </div>
                   </div>
@@ -251,7 +330,7 @@ const getResourceIcon = (type) => {
 
               {/* Roadmap Steps */}
               <div className="space-y-6">
-                {roadmapData.steps.map((step, index) => (
+                {roadmapDataState?.steps?.map((step, index) => (
                   <Card key={index} className="glass-card border-white/10">
                     <CardHeader>
                       <div className="flex items-center space-x-4">
@@ -330,16 +409,16 @@ const getResourceIcon = (type) => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div>
                       <h4 className="font-semibold text-primary mb-2">Market Demand</h4>
-                      <p className="text-2xl font-bold">{roadmapData.marketInsights.demand}</p>
+                      <p className="text-2xl font-bold">{roadmapDataState?.marketInsights?.demand}</p>
                     </div>
                     <div>
                       <h4 className="font-semibold text-primary mb-2">Average Salary</h4>
-                      <p className="text-lg font-medium">{roadmapData.marketInsights.averageSalary}</p>
+                      <p className="text-lg font-medium">{roadmapDataState?.marketInsights?.averageSalary}</p>
                     </div>
                     <div>
                       <h4 className="font-semibold text-primary mb-2">Top Companies</h4>
                       <div className="space-y-1">
-                        {roadmapData.marketInsights.topCompanies.slice(0, 3).map((company, index) => (
+                        {roadmapDataState?.marketInsights?.topCompanies?.slice(0, 3).map((company, index) => (
                           <div key={index} className="text-sm text-muted-foreground">{company}</div>
                         ))}
                       </div>
@@ -347,7 +426,7 @@ const getResourceIcon = (type) => {
                     <div>
                       <h4 className="font-semibold text-primary mb-2">Key Skills</h4>
                       <div className="flex flex-wrap gap-1">
-                        {roadmapData.marketInsights.keySkills.slice(0, 2).map((skill, index) => (
+                        {roadmapDataState?.marketInsights?.keySkills?.slice(0, 2).map((skill, index) => (
                           <span
                             key={index}
                             className="px-2 py-1 bg-white/10 text-xs rounded-full"
@@ -363,11 +442,20 @@ const getResourceIcon = (type) => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button variant="neural" size="lg" className="shadow-glow-primary">
-                  <BookOpen className="h-5 w-5 mr-2" />
-                  Start Learning Path
+                <Button 
+                  onClick={handleSaveRoadmap}
+                  variant="neural" 
+                  size="lg" 
+                  className="shadow-glow-primary"
+                >
+                  <Save className="h-5 w-5 mr-2" />
+                  Save & Continue Learning
                 </Button>
-                <Button variant="cyber" size="lg">
+                <Button 
+                  onClick={() => setRoadmapGenerated(false)}
+                  variant="cyber" 
+                  size="lg"
+                >
                   <ArrowRight className="h-5 w-5 mr-2" />
                   Generate New Roadmap
                 </Button>
