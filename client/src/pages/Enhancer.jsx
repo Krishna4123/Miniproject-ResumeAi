@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -10,7 +10,6 @@ import {
   TrendingUp,
   Target,
   Zap,
-  Download,
   RefreshCw
 } from 'lucide-react';
 import Header from '@/components/Header';
@@ -22,50 +21,95 @@ const Enhancer = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisComplete, setAnalysisComplete] = useState(false);
+  const [serverResults, setServerResults] = useState(null);
+  
+  const Game = ({ active }) => {
+    const canvasRef = useRef(null);
+    const rafRef = useRef(null);
 
-  const analysisResults = {
-    score: 87,
-    improvements: [
-      {
-        type: 'success',
-        title: 'Strong Action Verbs',
-        description: 'Great use of impactful action verbs throughout your resume.',
-        icon: CheckCircle
-      },
-      {
-        type: 'warning',
-        title: 'Missing Keywords',
-        description: 'Add 5 more industry-specific keywords to improve ATS compatibility.',
-        icon: AlertCircle
-      },
-      {
-        type: 'info',
-        title: 'Quantify Achievements',
-        description: 'Include more metrics and numbers to showcase your impact.',
-        icon: TrendingUp
-      }
-    ],
-    suggestions: [
-      {
-        section: 'Professional Summary',
-        original: 'Experienced software developer with knowledge of various programming languages.',
-        improved: 'Results-driven Senior Software Engineer with 5+ years of experience leading cross-functional teams to deliver scalable web applications, increasing user engagement by 40% and reducing system downtime by 60%.',
-        impact: 'High'
-      },
-      {
-        section: 'Work Experience',
-        original: 'Worked on various projects to improve user experience.',
-        improved: 'Led UI/UX optimization initiatives across 3 major products, resulting in 25% increase in user retention and 35% reduction in bounce rate.',
-        impact: 'High'
-      },
-      {
-        section: 'Skills',
-        original: 'JavaScript, React, Node.js',
-        improved: 'JavaScript (ES6+), React.js, Node.js, TypeScript, AWS, Docker, MongoDB, RESTful APIs, Agile/Scrum',
-        impact: 'Medium'
-      }
-    ]
+    useEffect(() => {
+      const canvas = canvasRef.current;
+      if (!canvas || !active) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+
+      let ballX = W / 2;
+      let ballY = H / 2;
+      let ballVX = 3;
+      let ballVY = 2.2;
+      const ballR = 6;
+
+      const paddleW = 8;
+      const paddleH = 60;
+      const playerX = 10;
+      const aiX = W - 10 - paddleW;
+      let playerY = H / 2 - paddleH / 2;
+      let aiY = H / 2 - paddleH / 2;
+      let mouseY = playerY;
+
+      const onMouseMove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouseY = e.clientY - rect.top - paddleH / 2;
+      };
+      canvas.addEventListener('mousemove', onMouseMove);
+
+      const loop = () => {
+        // physics
+        ballX += ballVX;
+        ballY += ballVY;
+        if (ballY < ballR || ballY > H - ballR) ballVY *= -1;
+
+        // paddles follow
+        playerY += (mouseY - playerY) * 0.3;
+        aiY += ((ballY - paddleH / 2) - aiY) * 0.06;
+
+        // collisions
+        if (ballX - ballR < playerX + paddleW && ballY > playerY && ballY < playerY + paddleH) {
+          ballVX = Math.abs(ballVX) * 1.02;
+        }
+        if (ballX + ballR > aiX && ballY > aiY && ballY < aiY + paddleH) {
+          ballVX = -Math.abs(ballVX) * 1.02;
+        }
+
+        // reset if out of bounds
+        if (ballX < -20 || ballX > W + 20) {
+          ballX = W / 2; ballY = H / 2; ballVX = (Math.random() > 0.5 ? 3 : -3); ballVY = 2.2;
+        }
+
+        // draw
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fillRect(W/2 - 1, 0, 2, H);
+        ctx.fillStyle = 'white';
+        ctx.beginPath();
+        ctx.arc(ballX, ballY, ballR, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(playerX, playerY, paddleW, paddleH);
+        ctx.fillRect(aiX, aiY, paddleW, paddleH);
+
+        if (active) rafRef.current = requestAnimationFrame(loop);
+      };
+
+      rafRef.current = requestAnimationFrame(loop);
+      return () => {
+        canvas.removeEventListener('mousemove', onMouseMove);
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
+    }, [active]);
+
+    if (!active) return null;
+    return (
+      <div className="mt-10">
+        <h3 className="text-center text-sm text-muted-foreground mb-2">Mini-game while you wait</h3>
+        <div className="flex justify-center">
+          <canvas ref={canvasRef} width={480} height={200} className="rounded-md border border-white/10 bg-black/40" />
+        </div>
+      </div>
+    );
   };
+
+  const analysisResults = serverResults || { score: 0, improvements: [], suggestions: [] };
 
   const handleFileUpload = (event) => {
     const file = event.target.files?.[0];
@@ -80,17 +124,47 @@ const Enhancer = () => {
 
   const handleAnalyze = async () => {
     if (!uploadedFile) return;
-    
-    setIsAnalyzing(true);
-    // Simulate AI analysis
-    setTimeout(() => {
-      setIsAnalyzing(false);
+
+    try {
+      setIsAnalyzing(true);
+
+      const formData = new FormData();
+      formData.append('resume', uploadedFile);
+
+      const response = await fetch('/api/enhancer', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || err.message || 'Failed to analyze resume');
+      }
+
+      const data = await response.json();
+      setServerResults({
+        score: data.score,
+        improvements: (data.improvements || []).map((it) => ({
+          ...it,
+          icon: it.type === 'success' ? CheckCircle : it.type === 'warning' ? AlertCircle : TrendingUp
+        })),
+        suggestions: data.suggestions || []
+      });
       setAnalysisComplete(true);
       toast({
-        title: "Analysis Complete!",
-        description: "Your resume has been analyzed and optimized suggestions are ready.",
+        title: 'Analysis Complete!',
+        description: data.usedAI ? 'Generated with Gemini.' : 'Generated with fallback heuristics.'
       });
-    }, 3000);
+    } catch (error) {
+      toast({
+        title: 'Analysis failed',
+        description: error.message,
+        variant: 'destructive'
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const getScoreColor = (score) => {
@@ -107,6 +181,8 @@ const Enhancer = () => {
       default: return 'text-muted-foreground';
     }
   };
+
+  // Download removed per request; keeping placeholder if needed in future
 
   return (
     <div className="min-h-screen">
@@ -206,6 +282,7 @@ const Enhancer = () => {
                       This may take a few moments while our AI analyzes your resume...
                     </p>
                   )}
+                  <Game active={isAnalyzing} />
                 </div>
               )}
             </div>
@@ -296,10 +373,6 @@ const Enhancer = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button variant="neural" size="lg" className="shadow-glow-primary">
-                  <Download className="h-5 w-5 mr-2" />
-                  Download Enhanced Resume
-                </Button>
                 <Button variant="cyber" size="lg">
                   <RefreshCw className="h-5 w-5 mr-2" />
                   Analyze Another Resume
