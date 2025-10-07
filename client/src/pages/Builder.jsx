@@ -5,6 +5,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import ResumePreviewModal from '../components/ResumePreviewModal';
+import ResumeTemplate from '../components/ResumeTemplate';
 import { 
   Brain, 
   Download, 
@@ -32,9 +33,10 @@ const Builder = () => {
 
   const sections = [
     { id: 'personal', label: 'Personal Info', icon: User },
-    { id: 'experience', label: 'Experience', icon: Briefcase },
     { id: 'education', label: 'Education', icon: GraduationCap },
     { id: 'skills', label: 'Skills', icon: Award },
+    { id: 'projects', label: 'Projects', icon: Briefcase },
+    { id: 'experience', label: 'Experience', icon: Briefcase },
   ];
 
   const [formData, setFormData] = useState({
@@ -44,7 +46,8 @@ const Builder = () => {
       phone: '',
       location: '',
       linkedin: '',
-      summary: ''
+      summary: '',
+      about: ''
     },
     experience: [
       {
@@ -62,7 +65,8 @@ const Builder = () => {
         gpa: ''
       }
     ],
-    skills: []
+    skills: [],
+    projects: []
   });
 
   const handleGenerateWithAI = async () => {
@@ -161,6 +165,20 @@ const removeEducation = (index) => {
     setFormData(prev => ({
       ...prev,
       skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addProject = () => {
+    setFormData(prev => ({
+      ...prev,
+      projects: [...(prev.projects || []), { title: '', description: '' }]
+    }));
+  };
+
+  const removeProject = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      projects: (prev.projects || []).filter((_, i) => i !== index)
     }));
   };
 
@@ -276,13 +294,28 @@ const removeEducation = (index) => {
         <Textarea 
           id="summary" 
           placeholder="Write a compelling summary of your professional background..."
-          rows={4}
+          rows={6}
+          className="text-sm md:text-base min-h-[120px] resize-y"
           value={formData.personal.summary}
           onChange={(e) => setFormData(prev => ({
             ...prev,
             personal: { ...prev.personal, summary: e.target.value }
           }))}
         />
+        <div className="space-y-2 pt-2">
+          <Label htmlFor="about">About Yourself</Label>
+          <Textarea
+            id="about"
+            placeholder="Tell a brief story about your motivation, values, and what you’re looking for."
+            rows={6}
+            className="text-sm md:text-base min-h-[120px] resize-y"
+            value={formData.personal.about}
+            onChange={(e) => setFormData(prev => ({
+              ...prev,
+              personal: { ...prev.personal, about: e.target.value }
+            }))}
+          />
+        </div>
         <Button 
           variant="neural" 
           size="sm" 
@@ -498,6 +531,65 @@ const removeEducation = (index) => {
     </div>
   );
 
+  const renderProjectsSection = () => (
+    <div className="space-y-6">
+      {(formData.projects || []).map((proj, index) => (
+        <Card key={index} className="glass-card border-white/10">
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg">Project #{index + 1}</CardTitle>
+            {(formData.projects || []).length > 1 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => removeProject(index)}
+                className="text-destructive hover:text-destructive"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Project Name</Label>
+              <Input
+                placeholder="E-commerce Web App"
+                value={proj.title}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => {
+                    const next = [...(prev.projects || [])];
+                    next[index] = { ...next[index], title: value };
+                    return { ...prev, projects: next };
+                  });
+                }}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Project Description</Label>
+              <Textarea
+                placeholder="Brief description, responsibilities, technologies, impact..."
+                rows={4}
+                value={proj.description}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => {
+                    const next = [...(prev.projects || [])];
+                    next[index] = { ...next[index], description: value };
+                    return { ...prev, projects: next };
+                  });
+                }}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      <Button variant="outline" onClick={addProject} className="w-full">
+        <Plus className="h-4 w-4 mr-2" />
+        Add Project
+      </Button>
+    </div>
+  );
+
   const renderSkillsSection = () => (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -544,12 +636,14 @@ const removeEducation = (index) => {
     switch (activeSection) {
       case 'personal':
         return renderPersonalSection();
-      case 'experience':
-        return renderExperienceSection();
       case 'education':
         return renderEducationSection();
       case 'skills':
         return renderSkillsSection();
+      case 'projects':
+        return renderProjectsSection();
+      case 'experience':
+        return renderExperienceSection();
       default:
         return renderPersonalSection();
     }
@@ -630,16 +724,9 @@ const removeEducation = (index) => {
                     <CardTitle className="gradient-text">Preview</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="aspect-[8.5/11] bg-white/5 rounded-lg border border-white/10 p-4 text-xs text-muted-foreground">
-                      <div className="space-y-2">
-                        <div className="h-3 bg-white/20 rounded"></div>
-                        <div className="h-2 bg-white/10 rounded w-3/4"></div>
-                        <div className="h-2 bg-white/10 rounded w-1/2"></div>
-                        <div className="mt-4 space-y-1">
-                          <div className="h-2 bg-white/10 rounded"></div>
-                          <div className="h-2 bg-white/10 rounded w-5/6"></div>
-                          <div className="h-2 bg-white/10 rounded w-4/6"></div>
-                        </div>
+                    <div className="h-[520px] bg-white rounded-lg border border-white/10 overflow-auto">
+                      <div className="origin-top-left [transform-origin:0_0]" style={{ transform: 'scale(0.6)', width: '850px' }}>
+                        <ResumeTemplate data={formData} />
                       </div>
                     </div>
                   </CardContent>
