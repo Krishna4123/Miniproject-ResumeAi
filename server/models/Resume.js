@@ -6,16 +6,15 @@ const mongoose = require('mongoose');
 const resumeSchema = new mongoose.Schema(
   {
     // Reference to the user who owns this resume
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User', // Reference to the User model
-      required: true,
-    },
+  user: {
+  	type: String, // store simple user identifier from x-auth-user
+  	required: true,
+  },
     // The full content or text of the resume
-    content: {
-      type: String,
-      required: true,
-    },
+  content: {
+  	type: mongoose.Schema.Types.Mixed, // resume JSON content
+  	required: true,
+  },
     // A numerical score for the resume, likely from an analysis
     score: {
       type: Number,

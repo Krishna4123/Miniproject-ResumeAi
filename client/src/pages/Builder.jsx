@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
+import ResumePreviewModal from '../components/ResumePreviewModal';
 import { 
   Brain, 
   Download, 
@@ -17,14 +18,17 @@ import {
   Plus,
   X
 } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { useToast } from '@/hooks/use-toast';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
+import { useToast } from '../hooks/use-toast';
+import { createResume, enhanceResume, getUserResumes, analyzeResume } from '../services/api';
 
 const Builder = () => {
   const { toast } = useToast();
   const [activeSection, setActiveSection] = useState('personal');
+  const [showPreview, setShowPreview] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [newSkill, setNewSkill] = useState('');
 
   const sections = [
     { id: 'personal', label: 'Personal Info', icon: User },
@@ -63,14 +67,59 @@ const Builder = () => {
 
   const handleGenerateWithAI = async () => {
     setIsGenerating(true);
-    // Simulate AI generation
-    setTimeout(() => {
+    try {
+      const firstExp = formData.experience?.[0] || {};
+      const baseText = [
+        formData.personal.fullName,
+        formData.personal.summary,
+        firstExp.position,
+        firstExp.description,
+        formData.skills?.join(', ')
+      ].filter(Boolean).join(' | ');
+
+      // 1) Try enhancer endpoint
+      try {
+        const { data } = await enhanceResume(baseText || 'Professional summary generation');
+        if (data?.enhancedText) {
+          setFormData(prev => {
+            const updated = { ...prev, personal: { ...prev.personal, summary: data.enhancedText } };
+            // Auto-save
+            (async () => { try { await createResume({ content: updated }); } catch {} })();
+            return updated;
+          });
+          toast({ title: 'AI Enhanced', description: 'Summary updated and draft auto-saved.' });
+          return;
+        }
+      } catch (err) {
+        // Continue to fallback
+        console.error('Enhancer error:', err?.response?.data || err?.message);
+      }
+
+      // 2) Fallback: use analyze endpoint if available
+      try {
+        const { data } = await analyzeResume(baseText || 'Professional summary generation');
+        const enhanced = data?.analysis?.enhancedText || data?.message || 'Experienced professional seeking opportunities.';
+        setFormData(prev => {
+          const updated = { ...prev, personal: { ...prev.personal, summary: enhanced } };
+          (async () => { try { await createResume({ content: updated }); } catch {} })();
+          return updated;
+        });
+        toast({ title: 'AI Enhanced (fallback)', description: 'Summary updated using analyzer.' });
+        return;
+      } catch (err2) {
+        console.error('Analyzer error:', err2?.response?.data || err2?.message);
+      }
+
+      // 3) Final local heuristic fallback
+      const synthesized = `Experienced ${firstExp.position || 'professional'} with strengths in ${(formData.skills || []).slice(0,5).join(', ')}`;
+      setFormData(prev => ({ ...prev, personal: { ...prev.personal, summary: synthesized } }));
+      toast({ title: 'Local enhancement applied', description: 'Basic summary generated locally.' });
+    } catch (e) {
+      console.error(e);
+      toast({ title: 'AI error', description: 'Could not enhance right now.', variant: 'destructive' });
+    } finally {
       setIsGenerating(false);
-      toast({
-        title: "AI Enhancement Complete!",
-        description: "Your resume has been optimized with AI suggestions.",
-      });
-    }, 2000);
+    }
   };
 
   const addExperience = () => {
@@ -99,6 +148,57 @@ const removeEducation = (index) => {
       ...prev,
       education: prev.education.filter((_, i) => i !== index)
     }));
+  };
+
+  const addSkill = () => {
+    const skill = newSkill.trim();
+    if (!skill) return;
+    setFormData(prev => ({ ...prev, skills: [...prev.skills, skill] }));
+    setNewSkill('');
+  };
+
+  const removeSkill = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      skills: prev.skills.filter((_, i) => i !== index)
+    }));
+  };
+
+  const saveDraft = async () => {
+    try {
+      const payload = { ...formData };
+      await createResume({ content: payload });
+      toast({ title: 'Draft saved', description: 'Your resume draft is saved.' });
+    } catch (e) {
+      toast({ title: 'Save failed', description: 'Could not save draft.', variant: 'destructive' });
+    }
+  };
+
+  const loadLatestDraft = async () => {
+    try {
+      // Using mocked auth user id header value "123" also as path param
+      const { data } = await getUserResumes('123');
+      if (!data || data.length === 0) {
+        toast({ title: 'No drafts', description: 'No saved drafts found.' });
+        return;
+      }
+      // Prefer newest by createdAt if present
+      const sorted = [...data].sort((a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+      const latest = sorted[sorted.length - 1];
+      if (latest && latest.content) {
+        const content = typeof latest.content === 'string' ? (() => { try { return JSON.parse(latest.content); } catch { return null; } })() : latest.content;
+        if (!content) {
+          toast({ title: 'Invalid draft', description: 'Draft content could not be parsed.', variant: 'destructive' });
+          return;
+        }
+        setFormData(content);
+        toast({ title: 'Draft loaded', description: 'Latest draft applied to the form.' });
+      } else {
+        toast({ title: 'Invalid draft', description: 'Draft content missing.', variant: 'destructive' });
+      }
+    } catch (e) {
+      toast({ title: 'Load failed', description: 'Could not load drafts.', variant: 'destructive' });
+    }
   };
 
   const renderPersonalSection = () => (
@@ -226,22 +326,64 @@ const removeEducation = (index) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Company</Label>
-                <Input placeholder="Google Inc." />
+                <Input
+                  placeholder="Google Inc."
+                  value={exp.company}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.experience];
+                      next[index] = { ...next[index], company: value };
+                      return { ...prev, experience: next };
+                    });
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Position</Label>
-                <Input placeholder="Software Engineer" />
+                <Input
+                  placeholder="Software Engineer"
+                  value={exp.position}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.experience];
+                      next[index] = { ...next[index], position: value };
+                      return { ...prev, experience: next };
+                    });
+                  }}
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Duration</Label>
-              <Input placeholder="Jan 2020 - Present" />
+              <Input
+                placeholder="Jan 2020 - Present"
+                value={exp.duration}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => {
+                    const next = [...prev.experience];
+                    next[index] = { ...next[index], duration: value };
+                    return { ...prev, experience: next };
+                  });
+                }}
+              />
             </div>
             <div className="space-y-2">
               <Label>Description</Label>
-              <Textarea 
+              <Textarea
                 placeholder="Describe your key responsibilities and achievements..."
                 rows={3}
+                value={exp.description}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => {
+                    const next = [...prev.experience];
+                    next[index] = { ...next[index], description: value };
+                    return { ...prev, experience: next };
+                  });
+                }}
               />
             </div>
           </CardContent>
@@ -280,21 +422,65 @@ const removeEducation = (index) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Institution</Label>
-                <Input placeholder="Stanford University" />
+                <Input
+                  placeholder="Stanford University"
+                  value={edu.institution}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.education];
+                      next[index] = { ...next[index], institution: value };
+                      return { ...prev, education: next };
+                    });
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Degree</Label>
-                <Input placeholder="Bachelor of Science in Computer Science" />
+                <Input
+                  placeholder="Bachelor of Science in Computer Science"
+                  value={edu.degree}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.education];
+                      next[index] = { ...next[index], degree: value };
+                      return { ...prev, education: next };
+                    });
+                  }}
+                />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Duration</Label>
-                <Input placeholder="2016 - 2020" />
+                <Input
+                  placeholder="2016 - 2020"
+                  value={edu.duration}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.education];
+                      next[index] = { ...next[index], duration: value };
+                      return { ...prev, education: next };
+                    });
+                  }}
+                />
               </div>
               <div className="space-y-2">
                 <Label>GPA (Optional)</Label>
-                <Input placeholder="3.8/4.0" />
+                <Input
+                  placeholder="3.8/4.0"
+                  value={edu.gpa}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setFormData(prev => {
+                      const next = [...prev.education];
+                      next[index] = { ...next[index], gpa: value };
+                      return { ...prev, education: next };
+                    });
+                  }}
+                />
               </div>
             </div>
           </CardContent>
@@ -317,19 +503,19 @@ const removeEducation = (index) => {
       <div className="space-y-4">
         <Label>Skills</Label>
         <div className="flex flex-wrap gap-2">
-          {['JavaScript', 'React', 'Node.js', 'Python', 'AWS', 'Docker'].map((skill, index) => (
+          {formData.skills.map((skill, index) => (
             <div
-              key={index}
+              key={`${skill}-${index}`}
               className="px-3 py-1 bg-gradient-primary text-primary-foreground rounded-full text-sm font-medium shadow-glow-primary"
             >
               {skill}
-              <button className="ml-2 text-xs hover:text-destructive">×</button>
+              <button className="ml-2 text-xs hover:text-destructive" onClick={() => removeSkill(index)}>×</button>
             </div>
           ))}
         </div>
         <div className="flex gap-2">
-          <Input placeholder="Add a skill..." className="flex-1" />
-          <Button variant="neural">Add</Button>
+          <Input placeholder="Add a skill..." className="flex-1" value={newSkill} onChange={(e) => setNewSkill(e.target.value)} />
+          <Button variant="neural" onClick={addSkill}>Add</Button>
         </div>
       </div>
       
@@ -460,17 +646,20 @@ const removeEducation = (index) => {
                 </Card>
 
                 <div className="space-y-3">
-                  <Button variant="neural" className="w-full shadow-glow-primary">
+                  <Button variant="neural" className="w-full shadow-glow-primary" onClick={() => setShowPreview(true)}>
                     <Eye className="h-4 w-4 mr-2" />
-                    Preview Resume
+                     Preview Resume
                   </Button>
-                  <Button variant="cyber" className="w-full">
+                  <Button variant="cyber" className="w-full" onClick={() => setShowPreview(true)}>
                     <Download className="h-4 w-4 mr-2" />
                     Download PDF
                   </Button>
-                  <Button variant="ghost" className="w-full">
+                  <Button variant="ghost" className="w-full" onClick={saveDraft}>
                     <Save className="h-4 w-4 mr-2" />
                     Save Draft
+                  </Button>
+                  <Button variant="outline" className="w-full" onClick={loadLatestDraft}>
+                    Load Latest Draft
                   </Button>
                 </div>
               </div>
@@ -478,10 +667,13 @@ const removeEducation = (index) => {
           </div>
         </div>
       </div>
-
       <Footer />
+      <ResumePreviewModal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        resumeData={formData}
+      />
     </div>
   );
 };
-
 export default Builder;
