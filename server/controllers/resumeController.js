@@ -1,7 +1,7 @@
 // controllers/resumeController.js
 
 const Resume = require('../models/Resume');
-const User = require('../models/User');
+const mongoose = require('mongoose');
 const axios = require('axios');
 require('dotenv').config();
 
@@ -14,16 +14,13 @@ exports.createResume = async (req, res) => {
     const userId = req.user.id;
 
     // Create a new resume instance
-    const newResume = new Resume({
-      user: userId,
-      content,
-    });
+    const newResume = new Resume({ user: userId, content });
 
     // Save the resume to the database
     await newResume.save();
 
     // Add the resume's ID to the user's list of resumes
-    await User.findByIdAndUpdate(userId, { $push: { resumes: newResume._id } });
+    // Optional: If using a separate User collection, you can maintain linkage there.
 
     res.status(201).json({ message: 'Resume created successfully.', resume: newResume });
   } catch (error) {
@@ -37,7 +34,12 @@ exports.createResume = async (req, res) => {
 exports.getUserResumes = async (req, res) => {
   try {
     const { userId } = req.params;
-    const resumes = await Resume.find({ user: userId });
+    const query = [{ user: userId }];
+    if (mongoose.isValidObjectId(userId)) {
+      // Support legacy records that stored ObjectId references
+      query.push({ user: new mongoose.Types.ObjectId(userId) });
+    }
+    const resumes = await Resume.find({ $or: query }).sort({ createdAt: 1 });
     res.status(200).json(resumes);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching resumes.', error: error.message });
