@@ -12,12 +12,22 @@ import {
   Users,
   Award,
   BarChart3,
-  Briefcase
+  Briefcase,
+  User
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import FeedbackSection from '@/components/FeedbackSection';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLoginRequired = () => {
+    navigate('/login');
+  };
   const features = [
     {
       icon: FileText,
@@ -91,9 +101,9 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 fade-in-up cta-buttons" style={{ animationDelay: '0.4s' }}>
               <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover bounce-in button-lg" asChild>
-                <Link to="/builder">
+                <Link to="/login">
                   START BUILDING NOW
-                  <ArrowRight className="h-5 w-5 ml-2" />
+                  <User className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
               <Button variant="glass" size="lg" className="professional-hover scale-in button-lg" asChild>
@@ -206,9 +216,9 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="neural" size="lg" className="shadow-glow-primary" asChild>
-                <Link to="/builder">
+                <Link to="/login">
                   Get Started Free
-                  <ArrowRight className="h-5 w-5 ml-2" />
+                  <User className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
               <Button variant="ghost" size="lg" asChild>
@@ -220,6 +230,12 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Feedback Section */}
+      <FeedbackSection 
+        isLoggedIn={isLoggedIn} 
+        onLoginRequired={handleLoginRequired} 
+      />
 
       <Footer />
     </div>

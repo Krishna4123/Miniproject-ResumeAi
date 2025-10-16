@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Zap, Target, TrendingUp, Briefcase } from 'lucide-react';
+import { Menu, X, Zap, Target, TrendingUp, Briefcase, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
@@ -67,9 +67,11 @@ const Header = () => {
           {/* CTA Button & Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover">
-              GET STARTED
-              <Zap className="h-4 w-4 ml-2" />
+            <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover" asChild>
+              <Link to="/login">
+                GET STARTED
+                <User className="h-4 w-4 ml-2" />
+              </Link>
             </Button>
           </div>
 
@@ -111,9 +113,11 @@ const Header = () => {
                 <div className="flex justify-center">
                   <ThemeToggle />
                 </div>
-                <Button variant="neural" className="w-full professional-hover">
-                  GET STARTED
-                  <Zap className="h-4 w-4 ml-2" />
+                <Button variant="neural" className="w-full professional-hover" asChild>
+                  <Link to="/login">
+                    GET STARTED
+                    <User className="h-4 w-4 ml-2" />
+                  </Link>
                 </Button>
               </div>
             </nav>
