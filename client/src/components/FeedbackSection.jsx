@@ -324,3 +324,4 @@ const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
 };
 
 export default FeedbackSection;
+
