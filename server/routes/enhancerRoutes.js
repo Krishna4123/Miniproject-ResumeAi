@@ -4,7 +4,7 @@ const express = require('express');
 const multer = require('multer');
 const { enhanceResume } = require('../controllers/enhancerController');
 const { validateFileUpload, logExtractionMetrics } = require('../middleware/enhancedValidation');
-const authMiddleware = require('../middleware/authMiddleware');
+const { authenticateToken } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ const upload = multer({
 // POST /api/enhancer - Upload resume and get ATS score + suggestions
 router.post(
   '/',
-  authMiddleware,
+  authenticateToken,
   upload.single('resume'),
   validateFileUpload,
   logExtractionMetrics,

@@ -2,6 +2,7 @@ const express = require("express");
 const multer = require("multer");
 const { matchJobs } = require("../controllers/jobMatcherController");
 const { validateFileUpload, logExtractionMetrics } = require("../middleware/enhancedValidation");
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -34,6 +35,7 @@ const upload = multer({
 // POST /api/jobmatcher - Enhanced with multiple validation layers
 // ------------------------
 router.post("/", 
+  authenticateToken,
   upload.single("resume"), 
   validateFileUpload, 
   logExtractionMetrics, 

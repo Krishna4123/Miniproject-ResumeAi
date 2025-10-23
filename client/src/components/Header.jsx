@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Zap, Target, TrendingUp, Briefcase, User } from 'lucide-react';
+import { Menu, X, Zap, Target, TrendingUp, Briefcase, User, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
+  const { isLoggedIn, user, logout } = useAuth();
 
   const navigationItems = [
     { name: 'HOME', href: '/', icon: Target },
@@ -67,12 +69,35 @@ const Header = () => {
           {/* CTA Button & Theme Toggle */}
           <div className="hidden md:flex items-center space-x-4">
             <ThemeToggle />
-            <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover" asChild>
-              <Link to="/login">
-                GET STARTED
-                <User className="h-4 w-4 ml-2" />
-              </Link>
-            </Button>
+            {isLoggedIn ? (
+              <div className="flex items-center space-x-3">
+                {user?.profilePicture && (
+                  <img 
+                    src={user.profilePicture} 
+                    alt={user.name}
+                    className="h-8 w-8 rounded-full border-2 border-primary/20"
+                  />
+                )}
+                <span className="text-sm font-medium text-foreground">
+                  {user?.name}
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={logout}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover" asChild>
+                <Link to="/login">
+                  GET STARTED
+                  <User className="h-4 w-4 ml-2" />
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -113,12 +138,37 @@ const Header = () => {
                 <div className="flex justify-center">
                   <ThemeToggle />
                 </div>
-                <Button variant="neural" className="w-full professional-hover" asChild>
-                  <Link to="/login">
-                    GET STARTED
-                    <User className="h-4 w-4 ml-2" />
-                  </Link>
-                </Button>
+                {isLoggedIn ? (
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-3 px-4 py-2 bg-white/5 rounded-lg">
+                      {user?.profilePicture && (
+                        <img 
+                          src={user.profilePicture} 
+                          alt={user.name}
+                          className="h-6 w-6 rounded-full"
+                        />
+                      )}
+                      <span className="text-sm font-medium text-foreground">
+                        {user?.name}
+                      </span>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      className="w-full text-muted-foreground hover:text-foreground"
+                      onClick={logout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                ) : (
+                  <Button variant="neural" className="w-full professional-hover" asChild>
+                    <Link to="/login">
+                      GET STARTED
+                      <User className="h-4 w-4 ml-2" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             </nav>
           </div>

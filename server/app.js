@@ -55,10 +55,12 @@ app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 
 // --- API Routes ---
+app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/resumes", require("./routes/resumeRoutes"));
 app.use("/api/enhancer", require("./routes/enhancerRoutes"));
 app.use("/api/roadmap", require("./routes/roadmapRoutes"));
 app.use("/api/jobmatcher", require("./routes/jobMatcherRoutes")); // ✅ JobMatcher
+app.use("/api/feedback", require("./routes/feedbackRoutes")); // ✅ Feedback
 
 // Health check route
 app.get("/api/health", (_req, res) => {

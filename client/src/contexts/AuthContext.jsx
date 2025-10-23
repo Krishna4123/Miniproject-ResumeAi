@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 const AuthContext = createContext();
 
@@ -14,6 +15,9 @@ export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // API base URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5002/api';
 
   // Check for existing login state on component mount
   useEffect(() => {
@@ -36,41 +40,109 @@ export const AuthProvider = ({ children }) => {
     checkAuthState();
   }, []);
 
+  // Set up axios interceptor for auth token
+  useEffect(() => {
+    const token = localStorage.getItem('resuzo_auth');
+    if (token) {
+      const authData = JSON.parse(token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${authData.token}`;
+    }
+  }, []);
+
   const login = async (credentials) => {
     try {
       setIsLoading(true);
       
-      // Simulate API call - replace with actual authentication logic
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            user: {
-              id: '1',
-              username: credentials.username,
-              email: credentials.email || 'user@example.com',
-              name: credentials.username
-            },
-            token: 'mock-jwt-token'
-          });
-        }, 1000);
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
+        email: credentials.email || credentials.username,
+        password: credentials.password
       });
 
-      if (response.success) {
+      if (response.data.token) {
         const authData = {
-          user: response.user,
-          token: response.token,
+          user: response.data.user,
+          token: response.data.token,
           timestamp: Date.now()
         };
         
         localStorage.setItem('resuzo_auth', JSON.stringify(authData));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         setIsLoggedIn(true);
-        setUser(response.user);
+        setUser(response.data.user);
         return { success: true };
       }
     } catch (error) {
       console.error('Login error:', error);
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: error.response?.data?.message || error.message 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signup = async (userData) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
+        name: userData.username,
+        email: userData.email,
+        password: userData.password
+      });
+
+      if (response.data.token) {
+        const authData = {
+          user: response.data.user,
+          token: response.data.token,
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('resuzo_auth', JSON.stringify(authData));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        setIsLoggedIn(true);
+        setUser(response.data.user);
+        return { success: true };
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || error.message 
+      };
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const googleLogin = async (googleToken) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await axios.post(`${API_BASE_URL}/auth/google`, {
+        token: googleToken
+      });
+
+      if (response.data.token) {
+        const authData = {
+          user: response.data.user,
+          token: response.data.token,
+          timestamp: Date.now()
+        };
+        
+        localStorage.setItem('resuzo_auth', JSON.stringify(authData));
+        axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+        setIsLoggedIn(true);
+        setUser(response.data.user);
+        return { success: true };
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      return { 
+        success: false, 
+        error: error.response?.data?.message || error.message 
+      };
     } finally {
       setIsLoading(false);
     }
@@ -78,48 +150,9 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('resuzo_auth');
+    delete axios.defaults.headers.common['Authorization'];
     setIsLoggedIn(false);
     setUser(null);
-  };
-
-  const signup = async (userData) => {
-    try {
-      setIsLoading(true);
-      
-      // Simulate API call - replace with actual signup logic
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({
-            success: true,
-            user: {
-              id: '1',
-              username: userData.username,
-              email: userData.email,
-              name: userData.username
-            },
-            token: 'mock-jwt-token'
-          });
-        }, 1000);
-      });
-
-      if (response.success) {
-        const authData = {
-          user: response.user,
-          token: response.token,
-          timestamp: Date.now()
-        };
-        
-        localStorage.setItem('resuzo_auth', JSON.stringify(authData));
-        setIsLoggedIn(true);
-        setUser(response.user);
-        return { success: true };
-      }
-    } catch (error) {
-      console.error('Signup error:', error);
-      return { success: false, error: error.message };
-    } finally {
-      setIsLoading(false);
-    }
   };
 
   const value = {
@@ -128,7 +161,8 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     login,
     logout,
-    signup
+    signup,
+    googleLogin
   };
 
   return (

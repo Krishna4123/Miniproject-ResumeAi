@@ -15,8 +15,10 @@ import {
   Send,
   User,
   LogIn,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
+import { submitFeedback } from '@/services/api';
 
 const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
   const [feedbackData, setFeedbackData] = useState({
@@ -29,6 +31,8 @@ const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const features = [
     'AI Resume Builder',
@@ -69,16 +73,51 @@ const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
     setFeedbackData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!isLoggedIn) {
       onLoginRequired();
       return;
     }
     
-    // Handle feedback submission
-    console.log('Feedback submitted:', feedbackData);
-    setIsSubmitted(true);
+    // Validate required fields
+    if (feedbackData.rating === 0) {
+      setSubmitError('Please provide a rating before submitting.');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setSubmitError('');
+    
+    console.log('Submitting feedback data:', feedbackData);
+    
+    try {
+      const response = await submitFeedback(feedbackData);
+      console.log('Feedback submission response:', response);
+      
+      if (response.data.success) {
+        setIsSubmitted(true);
+        // Reset form data
+        setFeedbackData({
+          rating: 0,
+          usefulFeatures: [],
+          dislikedFeatures: [],
+          improvements: '',
+          additionalComments: '',
+          overallExperience: ''
+        });
+      } else {
+        setSubmitError(response.data.message || 'Failed to submit feedback. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      setSubmitError(
+        error.response?.data?.message || 
+        'Failed to submit feedback. Please check your connection and try again.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderStars = () => {
@@ -301,6 +340,13 @@ const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
                     />
                   </div>
 
+                  {/* Error Message */}
+                  {submitError && (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-400 text-center">
+                      {submitError}
+                    </div>
+                  )}
+
                   {/* Submit Button */}
                   <div className="text-center pt-6">
                     <Button 
@@ -308,9 +354,19 @@ const FeedbackSection = ({ isLoggedIn, onLoginRequired }) => {
                       variant="neural" 
                       size="lg" 
                       className="shadow-glow-primary professional-hover bounce-in"
+                      disabled={isSubmitting}
                     >
-                      Submit Feedback
-                      <Send className="h-4 w-4 ml-2" />
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Submitting...
+                        </>
+                      ) : (
+                        <>
+                          Submit Feedback
+                          <Send className="h-4 w-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </div>
                 </form>

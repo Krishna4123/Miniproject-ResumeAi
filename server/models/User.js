@@ -16,6 +16,26 @@ const userSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    // Google OAuth ID
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // Allows null values but ensures uniqueness when present
+    },
+    // Profile picture URL from Google
+    profilePicture: {
+      type: String,
+    },
+    // Password (optional for OAuth users)
+    password: {
+      type: String,
+    },
+    // Authentication method
+    authMethod: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
+    },
     // Array of resume IDs associated with the user
     resumes: [
       {

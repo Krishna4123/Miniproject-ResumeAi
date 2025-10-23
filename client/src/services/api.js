@@ -9,9 +9,42 @@ const api = axios.create({
   baseURL: "http://localhost:5002/api", // Your backend server URL
   headers: {
     "Content-Type": "application/json",
-    "x-auth-user": "123", // Mock user ID for authMiddleware
   },
 });
+
+// Add request interceptor to include auth token
+api.interceptors.request.use(
+  (config) => {
+    const authData = localStorage.getItem('resuzo_auth');
+    if (authData) {
+      try {
+        const { token } = JSON.parse(authData);
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor to handle auth errors
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid, clear auth data
+      localStorage.removeItem('resuzo_auth');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
 
 // ========================
 // Resume APIs
@@ -57,3 +90,12 @@ export const matchJob = (formData) => api.post("/jobmatcher", formData, {
     "Content-Type": "multipart/form-data",
   },
 });
+
+// ========================
+// Feedback API
+// ========================
+export const submitFeedback = (feedbackData) => 
+  api.post("/feedback/submit", feedbackData);
+
+export const getUserFeedback = (page = 1, limit = 10) => 
+  api.get(`/feedback/my-feedback?page=${page}&limit=${limit}`);

@@ -1,33 +1,49 @@
-/**
- * Mock Authentication Middleware
- * In a production app, this would verify JWT tokens
- */
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
 
-const authMiddleware = (req, res, next) => {
+/**
+ * Middleware to authenticate JWT tokens
+ */
+const authenticateToken = async (req, res, next) => {
   try {
-    // For development, always allow requests with any content
-    // Check for various auth headers that might be present
-    const userId = req.headers['x-auth-user'] || 
-                  req.headers['authorization'] || 
-                  req.headers['auth-token'] || 
-                  'default-user';
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+
+    if (!token) {
+      return res.status(401).json({ message: 'Access token required' });
+    }
+
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // Mock user object - in production, this would come from JWT verification
+    // Get user from database
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid token - user not found' });
+    }
+
+    // Add user info to request
     req.user = {
-      id: userId === 'default-user' ? 'user123' : userId,
-      email: 'user@example.com'
+      id: user._id,
+      userId: user._id,
+      email: user.email,
+      authMethod: user.authMethod
     };
-    
-    console.log(`[AuthMiddleware] Authenticated user: ${req.user.id}`);
+
     next();
-    
   } catch (error) {
-    console.error('[AuthMiddleware] Authentication error:', error);
-    res.status(401).json({ 
-      message: 'Authentication failed.',
-      code: 'AUTH_FAILED'
-    });
+    console.error('Auth middleware error:', error);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Invalid token' });
+    } else if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expired' });
+    }
+    
+    return res.status(500).json({ message: 'Authentication error' });
   }
 };
 
-module.exports = authMiddleware;
+module.exports = {
+  authenticateToken
+};
