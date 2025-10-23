@@ -12,36 +12,50 @@ import {
   Users,
   Award,
   BarChart3,
-  Briefcase
+  Briefcase,
+  User
 } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import FeedbackSection from '@/components/FeedbackSection';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+  const { isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLoginRequired = () => {
+    navigate('/login');
+  };
   const features = [
     {
       icon: FileText,
       title: 'AI Resume Builder',
       description: 'Create stunning, ATS-optimized resumes with our intelligent builder that understands your industry.',
-      color: 'primary'
+      color: 'primary',
+      href: '/builder'
     },
     {
       icon: Target,
       title: 'Smart Enhancer',
       description: 'Upload your existing resume and get AI-powered suggestions to improve content, format, and keywords.',
-      color: 'secondary'
+      color: 'secondary',
+      href: '/enhancer'
     },
     {
       icon: TrendingUp,
       title: 'Career Roadmap',
       description: 'Get personalized career paths and skill recommendations based on your goals and market trends.',
-      color: 'accent'
+      color: 'accent',
+      href: '/roadmap'
     },
     {
       icon: Briefcase,
       title: 'Job Matcher',
       description: 'Match your resume against millions of job descriptions to find the perfect fit.',
-      color: 'primary'
+      color: 'primary',
+      href: '/job-matcher'
     }
   ];
 
@@ -91,9 +105,9 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12 fade-in-up cta-buttons" style={{ animationDelay: '0.4s' }}>
               <Button variant="neural" size="lg" className="shadow-glow-primary professional-hover bounce-in button-lg" asChild>
-                <Link to="/builder">
+                <Link to="/login">
                   START BUILDING NOW
-                  <ArrowRight className="h-5 w-5 ml-2" />
+                  <User className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
               <Button variant="glass" size="lg" className="professional-hover scale-in button-lg" asChild>
@@ -139,19 +153,21 @@ const Home = () => {
             {features.map((feature, index) => {
               const Icon = feature.icon;
               return (
-                <Card key={feature.title} className="glass-card border-white/10 hover:border-white/20 transition-all duration-300 group professional-hover scale-in card" style={{ animationDelay: `${0.4 + index * 0.2}s` }}>
-                  <CardHeader>
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl shadow-glow-primary group-hover:shadow-glow-secondary transition-all duration-300 mb-4 glow-pulse">
-                      <Icon className="h-8 w-8 text-white" />
-                    </div>
-                    <CardTitle className="text-xl font-bold gradient-text uppercase tracking-wide">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="text-muted-foreground leading-relaxed">
-                      {feature.description}
-                    </CardDescription>
-                  </CardContent>
-                </Card>
+                <Link key={feature.title} to={feature.href} className="block">
+                  <Card className="glass-card border-white/10 hover:border-white/20 transition-all duration-300 group professional-hover scale-in card" style={{ animationDelay: `${0.4 + index * 0.2}s` }}>
+                    <CardHeader>
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-primary rounded-2xl shadow-glow-primary group-hover:shadow-glow-secondary transition-all duration-300 mb-4 glow-pulse">
+                        <Icon className="h-8 w-8 text-white" />
+                      </div>
+                      <CardTitle className="text-xl font-bold gradient-text uppercase tracking-wide">{feature.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription className="text-muted-foreground leading-relaxed">
+                        {feature.description}
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+                </Link>
               );
             })}
           </div>
@@ -206,9 +222,9 @@ const Home = () => {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button variant="neural" size="lg" className="shadow-glow-primary" asChild>
-                <Link to="/builder">
+                <Link to="/login">
                   Get Started Free
-                  <ArrowRight className="h-5 w-5 ml-2" />
+                  <User className="h-5 w-5 ml-2" />
                 </Link>
               </Button>
               <Button variant="ghost" size="lg" asChild>
@@ -220,6 +236,12 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Feedback Section */}
+      <FeedbackSection 
+        isLoggedIn={isLoggedIn} 
+        onLoginRequired={handleLoginRequired} 
+      />
 
       <Footer />
     </div>

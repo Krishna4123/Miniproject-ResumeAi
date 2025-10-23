@@ -569,3 +569,17 @@
     }
   }
 }
+
+/* Disable blinking/pulsing animations globally */
+.floating,
+.slide-in,
+.fade-in-up,
+.scale-in,
+.slide-in-left,
+.slide-in-right,
+.bounce-in,
+.wiggle,
+.pulse-glow,
+.glow-pulse {
+  animation: none !important;
+}
