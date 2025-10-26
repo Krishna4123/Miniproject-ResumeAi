@@ -15,6 +15,7 @@ import {
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { useToast } from '@/hooks/use-toast';
+import { enhanceResumeFile } from '@/services/api';
 
 const Enhancer = () => {
   const { toast } = useToast();
@@ -131,18 +132,9 @@ const Enhancer = () => {
       const formData = new FormData();
       formData.append('resume', uploadedFile);
 
-      const response = await fetch('/api/enhancer', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
+      const response = await enhanceResumeFile(formData);
+      const data = response.data;
 
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        throw new Error(err.error || err.message || 'Failed to analyze resume');
-      }
-
-      const data = await response.json();
       setServerResults({
         score: data.score,
         improvements: (data.improvements || []).map((it) => ({
@@ -157,9 +149,11 @@ const Enhancer = () => {
         description: data.usedAI ? 'Generated with Gemini.' : 'Generated with fallback heuristics.'
       });
     } catch (error) {
+      console.error('Enhancer API error:', error);
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to analyze resume';
       toast({
         title: 'Analysis failed',
-        description: error.message,
+        description: errorMessage,
         variant: 'destructive'
       });
     } finally {

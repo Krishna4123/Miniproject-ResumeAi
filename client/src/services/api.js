@@ -60,6 +60,13 @@ export const analyzeResume = (resumeText) =>
 export const enhanceResume = (resumeText) =>
   api.post("/enhancer", { text: resumeText });
 
+export const enhanceResumeFile = (formData) =>
+  api.post("/enhancer", formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+
 // ========================
 // Roadmap API
 // ========================

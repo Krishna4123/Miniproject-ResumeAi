@@ -74,6 +74,14 @@ const matchJobs = async (req, res) => {
 
     } catch (extractionError) {
       console.error("Enhanced text extraction error:", extractionError);
+      
+      // Cleanup any temp files
+      try {
+        await textExtractor.cleanup();
+      } catch (cleanupError) {
+        console.warn("Cleanup failed:", cleanupError.message);
+      }
+      
       return res.status(400).json({ 
         error: "Failed to extract text from file",
         details: extractionError.message || "The file may be corrupted, password-protected, or in an unsupported format"
@@ -193,6 +201,13 @@ const matchJobs = async (req, res) => {
         fallbackUsed: false,
         serviceUsed: mlServiceResult.serviceUsed
       };
+    }
+
+    // Cleanup temp files after successful processing
+    try {
+      await textExtractor.cleanup();
+    } catch (cleanupError) {
+      console.warn("Cleanup failed:", cleanupError.message);
     }
 
     res.json(response);
